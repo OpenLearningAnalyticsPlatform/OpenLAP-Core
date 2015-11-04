@@ -10,3 +10,6 @@
 
 # IntelliJ
 /out/
+
+# Sources from Spring
+/target
