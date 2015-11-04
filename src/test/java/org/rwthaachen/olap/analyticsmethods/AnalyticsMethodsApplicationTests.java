@@ -1,4 +1,4 @@
-package org.olap.rwthaachen;
+package org.rwthaachen.olap.analyticsmethods;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
