@@ -7,4 +7,14 @@ import javax.persistence.Entity;
  */
 
 public abstract class AbstractAnalyticsMethod {
+    Boolean isPredictive;
+    public abstract String sayHi();
+
+    public AbstractAnalyticsMethod(Boolean isPredictive) {
+        this.isPredictive = isPredictive;
+    }
+
+    public Boolean getPredictive() {
+        return isPredictive;
+    }
 }

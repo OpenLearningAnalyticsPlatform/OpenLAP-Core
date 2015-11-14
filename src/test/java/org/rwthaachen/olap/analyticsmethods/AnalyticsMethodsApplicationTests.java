@@ -13,4 +13,15 @@ public class AnalyticsMethodsApplicationTests {
 	public void contextLoads() {
 	}
 
+    @Test
+	public void viewAllAnalyticsMethodsTest(){
+		// TODO test well formed
+	}
+
+    @Test
+    public void viewAnalyticsMethodByIdTest(){
+        // TODO test well formed with existing method
+        // TODO test with error for not found
+    }
+
 }

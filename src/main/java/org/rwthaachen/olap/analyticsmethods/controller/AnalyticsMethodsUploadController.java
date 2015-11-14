@@ -1,12 +1,19 @@
 package org.rwthaachen.olap.analyticsmethods.controller;
 
 import OLAPDataSet.DataSetConfigurationValidationResult;
+import OLAPDataSet.OLAPColumnConfigurationData;
 import OLAPDataSet.OLAPPortConfiguration;
-import OLAPDataSet.OLAPPortMapping;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
+import org.rwthaachen.olap.analyticsmethods.service.AnalyticsMethodsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -18,43 +25,60 @@ import java.util.List;
 @Controller
 public class AnalyticsMethodsUploadController {
 
+    @Autowired
+    AnalyticsMethodsService analyticsMethodsService;
+
     @RequestMapping(
-            value = "/viewAllAnalyticsMethods",
+            value = "/AnalyticsMethods",
             method = RequestMethod.GET
     )
     public @ResponseBody
     List<AnalyticsMethodMetadata> viewAllAnalyticsMethods()
     {
-        return new ArrayList<AnalyticsMethodMetadata>(Arrays.asList(new AnalyticsMethodMetadata(), new AnalyticsMethodMetadata()));
+        return analyticsMethodsService.viewAllAnalyticsMethods();
     }
-
 
     @RequestMapping
             (
-                    value = "/viewAnalyticsMethod/{id}",
+                    value = "/AnalyticsMethods/{id}",
                     method = RequestMethod.GET
             )
     public @ResponseBody AnalyticsMethodMetadata viewAnalyticsMethod(@PathVariable String id)
     {
-        return  new AnalyticsMethodMetadata(id,"view","","",null);
+        return analyticsMethodsService.viewAnalyticsMethod(id);
     }
 
-    //TODO: Add the file handler, use requestParam for the file
+    //TODO: Add the file handler
     @RequestMapping
             (
                     value = "/uploadAnalyticsMethod",
                     method = RequestMethod.POST
             )
     public @ResponseBody AnalyticsMethodMetadata uploadAnalyticsMethod
-            (
-                    @RequestBody AnalyticsMethodMetadata methodMetadata,
-                    @RequestParam("file") String file
-            )
+    (
+            @RequestParam ("methodMetadata") String methodMetadataText,
+            //@RequestParam("jarBundle") String base64EncodedJar
+            @RequestParam ("jarBundle") MultipartFile jarBundle
+    )
     {
-        methodMetadata.setDescription(file);
-        return methodMetadata;
+
+        ObjectMapper mapper = new ObjectMapper();
+        AnalyticsMethodMetadata methodMetadata = null;
+
+        try {
+            // Attempt to interpret the json to construct the metadata object. It has to be done like this because
+            // the json is sent as a form request text (since the file is also part of the form),
+            // which does not support directly JSON.
+            methodMetadata = mapper.readValue(methodMetadataText,
+                    AnalyticsMethodMetadata.class);
+            return analyticsMethodsService.uploadAnalyticsMethod(methodMetadata, jarBundle);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new AnalyticsMethodsBadRequestException(e.getMessage());
+        }
     }
 
+    //TODO: Add the file handler
     @RequestMapping
             (
                     value = "/updateAnalyticsMethod/{id}",
@@ -70,6 +94,7 @@ public class AnalyticsMethodsUploadController {
         return new AnalyticsMethodMetadata(id,file,"",methodMetadata.getDescription(),null);
     }
 
+    //TODO: Add the file handler
     @RequestMapping
             (
                     value = "/validateConfiguration/{id}",
@@ -84,6 +109,35 @@ public class AnalyticsMethodsUploadController {
 
         return new DataSetConfigurationValidationResult(true, configurationMapping.toString() +
                 " Validated by Analytics Method: " + id);
+    }
+
+    //TODO: Add the file handler
+    @RequestMapping
+            (
+                    value = "getInputPorts/{id}",
+                    method = RequestMethod.GET
+            )
+    public @ResponseBody List<OLAPColumnConfigurationData> getInputPorts
+            (
+                    @PathVariable String id
+            )
+    {
+        // TODO this is just a placeholder method
+        return new ArrayList<OLAPColumnConfigurationData>(Arrays.asList(new OLAPColumnConfigurationData()));
+    }
+
+    //TODO: Add the file handler
+    @RequestMapping
+            (
+                    value = "getOutputPorts/{id}",
+                    method = RequestMethod.GET
+            )
+    public @ResponseBody List<OLAPColumnConfigurationData> getOutputPorts
+            (
+                    @PathVariable String id
+            )
+    {
+        return new ArrayList<OLAPColumnConfigurationData>(Arrays.asList(new OLAPColumnConfigurationData()));
     }
 
 }

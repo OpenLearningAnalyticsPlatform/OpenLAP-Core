@@ -1,14 +1,24 @@
 package org.rwthaachen.olap.analyticsmethods.model;
 
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
 import java.net.URL;
 
 /**
  * Created by lechip on 05/11/15.
  */
 
+@Entity
 public class AnalyticsMethodMetadata {
 
+    @Id
+    @GeneratedValue
     String id;
     String name;
     String creator;
@@ -21,6 +31,13 @@ public class AnalyticsMethodMetadata {
         this.creator = "";
         this.description = "";
         this.binariesLocation = null;
+    }
+
+    public AnalyticsMethodMetadata(String name, String creator, String description, URL binariesLocation) {
+        this.name = name;
+        this.creator = creator;
+        this.description = description;
+        this.binariesLocation = binariesLocation;
     }
 
     public AnalyticsMethodMetadata(String id, String name, String creator, String description, URL binariesLocation) {
@@ -69,5 +86,16 @@ public class AnalyticsMethodMetadata {
 
     public void setBinariesLocation(URL binariesLocation) {
         this.binariesLocation = binariesLocation;
+    }
+
+    @Override
+    public String toString() {
+        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        try {
+            return ow.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return super.toString();
     }
 }

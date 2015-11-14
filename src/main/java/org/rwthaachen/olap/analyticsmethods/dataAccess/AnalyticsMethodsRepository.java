@@ -7,9 +7,8 @@ import org.springframework.stereotype.Repository;
 /**
  * Created by lechip on 05/11/15.
  */
-
+@Repository
 public interface AnalyticsMethodsRepository
-        //extends CrudRepository<AnalyticsMethodMetadata, Long>
+        extends CrudRepository<AnalyticsMethodMetadata, String>
 {
-
 }

@@ -13,3 +13,6 @@
 
 # Sources from Spring
 /target
+
+# analyticsMethodsJars
+/analyticsMethodsJars
