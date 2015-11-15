@@ -48,7 +48,6 @@ public class AnalyticsMethodsUploadController {
         return analyticsMethodsService.viewAnalyticsMethod(id);
     }
 
-    //TODO: Add the file handler
     @RequestMapping
             (
                     value = "/uploadAnalyticsMethod",
@@ -111,7 +110,7 @@ public class AnalyticsMethodsUploadController {
                 " Validated by Analytics Method: " + id);
     }
 
-    //TODO: Add the file handler
+
     @RequestMapping
             (
                     value = "getInputPorts/{id}",
@@ -122,11 +121,11 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
-        // TODO this is just a placeholder method
+        // TODO implement with service
         return new ArrayList<OLAPColumnConfigurationData>(Arrays.asList(new OLAPColumnConfigurationData()));
     }
 
-    //TODO: Add the file handler
+
     @RequestMapping
             (
                     value = "getOutputPorts/{id}",
@@ -137,6 +136,7 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
+        // TODO implement with service
         return new ArrayList<OLAPColumnConfigurationData>(Arrays.asList(new OLAPColumnConfigurationData()));
     }
 

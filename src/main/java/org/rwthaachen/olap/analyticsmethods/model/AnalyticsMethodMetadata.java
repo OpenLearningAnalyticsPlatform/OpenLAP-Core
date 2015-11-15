@@ -23,6 +23,8 @@ public class AnalyticsMethodMetadata {
     String name;
     String creator;
     String description;
+    String implementingClass;
+    // TODO Make binariesLocation an optional attribute for the upload request.
     URL binariesLocation;
 
     public AnalyticsMethodMetadata() {
@@ -31,6 +33,17 @@ public class AnalyticsMethodMetadata {
         this.creator = "";
         this.description = "";
         this.binariesLocation = null;
+        this.implementingClass = "";
+    }
+
+    public AnalyticsMethodMetadata(String id, String name, String creator, String description,
+                                   String implementingClass, URL binariesLocation) {
+        this.id = id;
+        this.name = name;
+        this.creator = creator;
+        this.description = description;
+        this.implementingClass = implementingClass;
+        this.binariesLocation = binariesLocation;
     }
 
     public AnalyticsMethodMetadata(String name, String creator, String description, URL binariesLocation) {
@@ -86,6 +99,14 @@ public class AnalyticsMethodMetadata {
 
     public void setBinariesLocation(URL binariesLocation) {
         this.binariesLocation = binariesLocation;
+    }
+
+    public String getImplementingClass() {
+        return implementingClass;
+    }
+
+    public void setImplementingClass(String implementingClass) {
+        this.implementingClass = implementingClass;
     }
 
     @Override

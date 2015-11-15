@@ -3,6 +3,7 @@ package org.rwthaachen.olap.analyticsmethods.service;
 import org.rwthaachen.olap.analyticsmethods.AnalyticsMethodsApplication;
 import org.rwthaachen.olap.analyticsmethods.dataAccess.AnalyticsMethodsRepository;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException;
+import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsUploadErrorException;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ public class AnalyticsMethodsService {
 
     // Strings for method names
     public static final String VIEW_ANALYTICS_METHOD = "viewAnalyticsMethod";
+    private static final String JAR_EXTENSION = ".jar";
 
     @Value("${analyticsMethodsJarFolder}")
     String analyticsMethodsJarsFolder;
@@ -39,6 +41,9 @@ public class AnalyticsMethodsService {
 
     @Autowired
     DataBaseLoader databaseLoader;
+
+    @Autowired
+    AnalyticsMethodsUploadValidator validator;
 
     private	static	final Logger log =
             LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
@@ -80,29 +85,33 @@ public class AnalyticsMethodsService {
      */
     public AnalyticsMethodMetadata uploadAnalyticsMethod(
             AnalyticsMethodMetadata methodMetadata, MultipartFile jarBundle) {
+
+        AnalyticsMethodsValidationInformation validationInformation;
+        FileHandler fileHandler = new FileHandler();
+
         if (!jarBundle.isEmpty())
         {
             try
             {
-                byte[] bytes = jarBundle.getBytes();
+                // Save the jar in the filesystem
+                fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, methodMetadata.getName() + JAR_EXTENSION);
 
-                BufferedOutputStream stream = new BufferedOutputStream
-                        (
-                                new FileOutputStream
-                                (
-                                        new File(analyticsMethodsJarsFolder + methodMetadata.getName() + ".jar")
-                                )
-                        );
+                //Validation
+                validationInformation = validator.validatemethod(methodMetadata, analyticsMethodsJarsFolder);
+                if (!validationInformation.isValid())
+                {
+                    // If the submitted jar is not valid, remove it from the filesystem
+                    fileHandler.deleteFile(analyticsMethodsJarsFolder, methodMetadata.getName() + JAR_EXTENSION);
+                    // Throw exception (that can be used by the controller to send the bad request method)
+                    throw new AnalyticsMethodsUploadErrorException(validationInformation.getMessage());
+                }
+                else
+                {
+                    // TODO save metadata
+                    log.info(validationInformation.getMessage());
+                    return methodMetadata;
+                }
 
-                stream.write(bytes);
-                stream.close();
-
-                //TODO Validation
-                // validator.validatemethod(metadata)
-                // Make the metadata contain the name of the class that implements the AnaltyicsMethod and make the
-                // binariesLocation an optional attribute for the upload request.
-                // validate and if error, throw an invalidMethod exception, should be also a bad request.
-                return methodMetadata;
             } catch (IOException e) {
                 e.printStackTrace();
                 throw new AnalyticsMethodsUploadErrorException(e.getMessage());

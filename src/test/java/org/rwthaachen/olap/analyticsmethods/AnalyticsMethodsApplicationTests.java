@@ -24,4 +24,13 @@ public class AnalyticsMethodsApplicationTests {
         // TODO test with error for not found
     }
 
+	@Test
+	public void uploadAnalyticsMethod(){
+		// TODO test with jar that implements the framework right
+		// TODO test with jar that implements the framework right, but sends wrong information about implementing class
+		// TODO test with jar that does not implement the framework
+		// TODO test with invalid file
+		// TODO test with empty file
+	}
+
 }
