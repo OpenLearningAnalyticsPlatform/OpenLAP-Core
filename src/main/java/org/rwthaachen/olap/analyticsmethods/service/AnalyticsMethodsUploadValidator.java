@@ -1,9 +1,12 @@
 package org.rwthaachen.olap.analyticsmethods.service;
 
 import core.AnalyticsMethod;
+import org.rwthaachen.olap.analyticsmethods.AnalyticsMethodsApplication;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodUploadValidationException;
 
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -13,6 +16,9 @@ import org.springframework.stereotype.Service;
 public class AnalyticsMethodsUploadValidator {
 
     private AnalyticsMethodsClassPathLoader classPathLoader;
+
+    protected static final Logger log =
+            LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
 
     public AnalyticsMethodsValidationInformation validatemethod
             (AnalyticsMethodMetadata methodMetadata, String analyticsMethodsJarsFolder) {
@@ -27,7 +33,8 @@ public class AnalyticsMethodsUploadValidator {
             AnalyticsMethod method = classPathLoader.loadClass(methodMetadata.getImplementingClass());
             validationInformation.setValid(true);
             //TODO remove this
-            validationInformation.appendMessage(method.sayHi());
+            log.info("Validation successful: " + methodMetadata.getImplementingClass());
+            log.info("OLAPInputOf the method: " + method.getInputPorts());
         } catch (AnalyticsMethodUploadValidationException e) {
             validationInformation.setValid(false);
             validationInformation.appendMessage(e.getMessage());

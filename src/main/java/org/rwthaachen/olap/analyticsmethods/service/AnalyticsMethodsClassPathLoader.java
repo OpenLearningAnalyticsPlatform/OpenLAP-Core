@@ -23,6 +23,13 @@ public class AnalyticsMethodsClassPathLoader {
         //Loading classes from different sources
         jcl.add(analyticsMethodsJarsFolder);
 
+        // Set ClassPathLoader priorities to prevent collisions when loading
+        jcl.getParentLoader().setOrder(1);
+        jcl.getLocalLoader().setOrder(2);
+        jcl.getSystemLoader().setOrder(3);
+        jcl.getThreadLoader().setOrder(4);
+        jcl.getCurrentLoader().setOrder(5);
+
         // Set default to cglib (from version 2.2.1)
         ProxyProviderFactory.setDefaultProxyProvider( new CglibProxyProvider() );
         factory = JclObjectFactory.getInstance(true);

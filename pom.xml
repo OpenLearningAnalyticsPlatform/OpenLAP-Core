@@ -33,13 +33,13 @@
 		<dependency>
 			<groupId>com.github.OpenLearningAnalyticsPlatform</groupId>
 			<artifactId>OLAPDataSet</artifactId>
-			<version>v1.0</version>
+			<version>-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.github.OpenLearningAnalyticsPlatform</groupId>
 			<artifactId>AnalyticsMethodsFramework</artifactId>
-			<version>ca08555b1d</version>
+			<version>f84354d14f</version>
 		</dependency>
 
 		<dependency>
