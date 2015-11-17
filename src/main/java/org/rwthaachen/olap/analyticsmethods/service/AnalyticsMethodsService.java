@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedOutputStream;
@@ -32,7 +33,6 @@ import java.util.List;
 public class AnalyticsMethodsService {
 
     // Strings for method names
-    public static final String VIEW_ANALYTICS_METHOD = "viewAnalyticsMethod";
     private static final String JAR_EXTENSION = ".jar";
 
     @Value("${analyticsMethodsJarFolder}")
@@ -70,7 +70,7 @@ public class AnalyticsMethodsService {
         AnalyticsMethodMetadata result = analyticsMethodsRepository.findOne(id);
         if (result == null || id == null)
         {
-            throw new AnalyticsMethodNotFoundException(VIEW_ANALYTICS_METHOD + "/" + id);
+            throw new AnalyticsMethodNotFoundException("Analytics Method with id not found: " + id);
         }
         else
         {

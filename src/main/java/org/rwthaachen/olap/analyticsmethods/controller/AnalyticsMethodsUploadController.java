@@ -5,18 +5,19 @@ import OLAPDataSet.OLAPColumnConfigurationData;
 import OLAPDataSet.OLAPPortConfiguration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.rwthaachen.olap.analyticsmethods.service.AnalyticsMethodsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * A spring Controller that acts as a facade, exposing an API for handling JSON requests to the Analyics Methods
@@ -56,11 +57,9 @@ public class AnalyticsMethodsUploadController {
     public @ResponseBody AnalyticsMethodMetadata uploadAnalyticsMethod
     (
             @RequestParam ("methodMetadata") String methodMetadataText,
-            //@RequestParam("jarBundle") String base64EncodedJar
             @RequestParam ("jarBundle") MultipartFile jarBundle
     )
     {
-
         ObjectMapper mapper = new ObjectMapper();
         AnalyticsMethodMetadata methodMetadata = null;
 
@@ -138,6 +137,22 @@ public class AnalyticsMethodsUploadController {
     {
         // TODO implement with service
         return new ArrayList<OLAPColumnConfigurationData>(Arrays.asList(new OLAPColumnConfigurationData()));
+    }
+
+    @ExceptionHandler(AnalyticsMethodNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public @ResponseBody
+    AnalyticsMethodsErrorHandlerDTO handleMethodNotFoundException(AnalyticsMethodNotFoundException e,
+                                                                  HttpServletRequest request) {
+
+        AnalyticsMethodsErrorHandlerDTO errorObject = new AnalyticsMethodsErrorHandlerDTO(
+                HttpStatus.NOT_FOUND.value(),
+                e.getClass().getName(),
+                e.getMessage(),
+                request.getServletPath()
+        );
+
+        return errorObject;
     }
 
 }
