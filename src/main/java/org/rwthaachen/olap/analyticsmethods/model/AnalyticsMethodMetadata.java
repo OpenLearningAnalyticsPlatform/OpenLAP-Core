@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
@@ -20,25 +21,28 @@ public class AnalyticsMethodMetadata {
     @Id
     @GeneratedValue
     String id;
+    @Column(unique=true, nullable=false)
     String name;
+    @Column(nullable = false)
     String creator;
+    @Column(nullable = false)
     String description;
+    @Column(unique=true, nullable=false)
     String implementingClass;
-    // TODO Make binariesLocation an optional attribute for the upload request.
-    URL binariesLocation;
+    @Column(nullable = false)
+    String binariesLocation;
 
     public AnalyticsMethodMetadata() {
         this.id = "";
-        this.name = "";
+        this.name = null;
         this.creator = "";
         this.description = "";
         this.binariesLocation = null;
         this.implementingClass = "";
     }
 
-    public AnalyticsMethodMetadata(String id, String name, String creator, String description,
-                                   String implementingClass, URL binariesLocation) {
-        this.id = id;
+    public AnalyticsMethodMetadata(String name, String creator, String description,
+                                   String implementingClass, String binariesLocation) {
         this.name = name;
         this.creator = creator;
         this.description = description;
@@ -46,15 +50,7 @@ public class AnalyticsMethodMetadata {
         this.binariesLocation = binariesLocation;
     }
 
-    public AnalyticsMethodMetadata(String name, String creator, String description, URL binariesLocation) {
-        this.name = name;
-        this.creator = creator;
-        this.description = description;
-        this.binariesLocation = binariesLocation;
-    }
-
-    public AnalyticsMethodMetadata(String id, String name, String creator, String description, URL binariesLocation) {
-        this.id = id;
+    public AnalyticsMethodMetadata(String name, String creator, String description, String binariesLocation) {
         this.name = name;
         this.creator = creator;
         this.description = description;
@@ -93,11 +89,11 @@ public class AnalyticsMethodMetadata {
         this.description = description;
     }
 
-    public URL getBinariesLocation() {
+    public String getBinariesLocation() {
         return binariesLocation;
     }
 
-    public void setBinariesLocation(URL binariesLocation) {
+    public void setBinariesLocation(String binariesLocation) {
         this.binariesLocation = binariesLocation;
     }
 

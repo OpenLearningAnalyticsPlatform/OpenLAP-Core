@@ -17,6 +17,6 @@ public class AnalyticsMethodsBadRequestException extends RuntimeException  {
 
     public AnalyticsMethodsBadRequestException(String message) {
         super(message);
-        log.error("Not found exception on request: " + message);
+        log.error("Bad request: " + message);
     }
 }

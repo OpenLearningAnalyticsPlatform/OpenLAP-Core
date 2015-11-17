@@ -39,7 +39,7 @@
 		<dependency>
 			<groupId>com.github.OpenLearningAnalyticsPlatform</groupId>
 			<artifactId>AnalyticsMethodsFramework</artifactId>
-			<version>f84354d14f</version>
+			<version>-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>

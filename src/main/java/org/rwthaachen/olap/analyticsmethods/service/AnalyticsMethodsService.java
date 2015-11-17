@@ -1,5 +1,6 @@
 package org.rwthaachen.olap.analyticsmethods.service;
 
+import org.h2.jdbc.JdbcSQLException;
 import org.rwthaachen.olap.analyticsmethods.AnalyticsMethodsApplication;
 import org.rwthaachen.olap.analyticsmethods.dataAccess.AnalyticsMethodsRepository;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException;
@@ -10,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -107,17 +109,23 @@ public class AnalyticsMethodsService {
                 }
                 else
                 {
-                    // TODO save metadata
                     log.info(validationInformation.getMessage());
-                    return methodMetadata;
+                    // Stamp the location of the method in metadata and save it
+                    methodMetadata.setBinariesLocation(analyticsMethodsJarsFolder);
+                    return analyticsMethodsRepository.save(methodMetadata);
                 }
 
             } catch (IOException e) {
                 e.printStackTrace();
                 throw new AnalyticsMethodsUploadErrorException(e.getMessage());
+            } catch (DataIntegrityViolationException sqlException){
+                sqlException.printStackTrace();
+                throw new AnalyticsMethodsBadRequestException("Analytics Method already exists.");
+            } catch (Exception e){
+                e.printStackTrace();
             }
         }
-        throw new AnalyticsMethodsUploadErrorException("Empty jar bundle");
+        throw new AnalyticsMethodsUploadErrorException("Empty jar bundle.");
     }
 
 }

@@ -6,6 +6,7 @@ import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -15,6 +16,9 @@ import javax.annotation.PostConstruct;
  */
 @Service
 public class DataBaseLoader {
+    @Value("${analyticsMethodsJarFolder}")
+    String analyticsMethodsJarsFolder;
+
     private final AnalyticsMethodsRepository analyticsMethodsRepository;
     private	static	final Logger log	=
             LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
@@ -28,7 +32,8 @@ public class DataBaseLoader {
     private void initDatabase()
     {
         log.info("Started DataBaseLoader initDatabase");
-        AnalyticsMethodMetadata metadata1 = new AnalyticsMethodMetadata("Method1", "lechip","First Method", null);
+        AnalyticsMethodMetadata metadata1 = new AnalyticsMethodMetadata(
+                "A Method", "lechip","First Method","com.example.core.method1", analyticsMethodsJarsFolder);
         analyticsMethodsRepository.save(metadata1);
         log.info("Logged metadata: " + metadata1.toString());
     }
