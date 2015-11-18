@@ -34,7 +34,14 @@ public class AnalyticsMethodsValidationInformation {
 
     public String appendMessage(String message)
     {
-        this.message = this.message + "\n" + message;
+        if (message.isEmpty())
+        {
+            this.setMessage(message);
+        }
+        else
+        {
+            this.message = this.message + "\n" + message;
+        }
         return this.message;
     }
 }

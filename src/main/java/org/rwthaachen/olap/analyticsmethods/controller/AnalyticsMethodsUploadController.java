@@ -7,6 +7,7 @@ import OLAPDataSet.OLAPPortConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
+import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsUploadErrorException;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.rwthaachen.olap.analyticsmethods.service.AnalyticsMethodsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +52,7 @@ public class AnalyticsMethodsUploadController {
 
     @RequestMapping
             (
-                    value = "/uploadAnalyticsMethod",
+                    value = "/AnalyticsMethods",
                     method = RequestMethod.POST
             )
     public @ResponseBody AnalyticsMethodMetadata uploadAnalyticsMethod
@@ -76,10 +77,10 @@ public class AnalyticsMethodsUploadController {
         }
     }
 
-    //TODO: Add the file handler
+
     @RequestMapping
             (
-                    value = "/updateAnalyticsMethod/{id}",
+                    value = "/AnalyticsMethods/{id}",
                     method = RequestMethod.PUT
             )
     public @ResponseBody  AnalyticsMethodMetadata updateAnalyticsMethod
@@ -89,13 +90,13 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
+        //TODO Implement
         return new AnalyticsMethodMetadata(id,file,"",methodMetadata.getDescription(),null);
     }
 
-    //TODO: Add the file handler
     @RequestMapping
             (
-                    value = "/validateConfiguration/{id}",
+                    value = "/AnalyticsMethods/{id}/validateConfiguration",
                     method = RequestMethod.POST
             )
     public @ResponseBody DataSetConfigurationValidationResult validateConfiguration
@@ -104,7 +105,7 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
-
+        //TODO Implement
         return new DataSetConfigurationValidationResult(true, configurationMapping.toString() +
                 " Validated by Analytics Method: " + id);
     }
@@ -112,7 +113,7 @@ public class AnalyticsMethodsUploadController {
 
     @RequestMapping
             (
-                    value = "getInputPorts/{id}",
+                    value = "AnalyticsMethods/{id}/getInputPorts",
                     method = RequestMethod.GET
             )
     public @ResponseBody List<OLAPColumnConfigurationData> getInputPorts
@@ -120,14 +121,14 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
-        // TODO implement with service
+        //TODO Implement
         return new ArrayList<OLAPColumnConfigurationData>(Arrays.asList(new OLAPColumnConfigurationData()));
     }
 
 
     @RequestMapping
             (
-                    value = "getOutputPorts/{id}",
+                    value = "AnalyticsMethods/{id}/getOutputPorts",
                     method = RequestMethod.GET
             )
     public @ResponseBody List<OLAPColumnConfigurationData> getOutputPorts
@@ -135,7 +136,7 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
-        // TODO implement with service
+        //TODO Implement
         return new ArrayList<OLAPColumnConfigurationData>(Arrays.asList(new OLAPColumnConfigurationData()));
     }
 
@@ -143,10 +144,42 @@ public class AnalyticsMethodsUploadController {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public @ResponseBody
     AnalyticsMethodsErrorHandlerDTO handleMethodNotFoundException(AnalyticsMethodNotFoundException e,
-                                                                  HttpServletRequest request) {
-
+                                                                  HttpServletRequest request)
+    {
         AnalyticsMethodsErrorHandlerDTO errorObject = new AnalyticsMethodsErrorHandlerDTO(
                 HttpStatus.NOT_FOUND.value(),
+                e.getClass().getName(),
+                e.getMessage(),
+                request.getServletPath()
+        );
+
+        return errorObject;
+    }
+
+    @ExceptionHandler({AnalyticsMethodsUploadErrorException.class, IOException.class})
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public @ResponseBody
+    AnalyticsMethodsErrorHandlerDTO handleMethodsUploadErrorException(Exception e,
+                                                                      HttpServletRequest request)
+    {
+        AnalyticsMethodsErrorHandlerDTO errorObject = new AnalyticsMethodsErrorHandlerDTO(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                e.getClass().getName(),
+                e.getMessage(),
+                request.getServletPath()
+        );
+
+        return errorObject;
+    }
+
+    @ExceptionHandler(AnalyticsMethodsBadRequestException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public @ResponseBody
+    AnalyticsMethodsErrorHandlerDTO handleMethodsUploadBadRequestException(AnalyticsMethodsBadRequestException e,
+                                                                      HttpServletRequest request)
+    {
+        AnalyticsMethodsErrorHandlerDTO errorObject = new AnalyticsMethodsErrorHandlerDTO(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 e.getClass().getName(),
                 e.getMessage(),
                 request.getServletPath()

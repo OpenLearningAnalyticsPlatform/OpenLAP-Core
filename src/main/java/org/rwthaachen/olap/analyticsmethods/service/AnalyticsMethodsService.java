@@ -114,7 +114,6 @@ public class AnalyticsMethodsService {
                     methodMetadata.setBinariesLocation(analyticsMethodsJarsFolder);
                     return analyticsMethodsRepository.save(methodMetadata);
                 }
-
             } catch (IOException e) {
                 e.printStackTrace();
                 throw new AnalyticsMethodsUploadErrorException(e.getMessage());
@@ -123,9 +122,10 @@ public class AnalyticsMethodsService {
                 throw new AnalyticsMethodsBadRequestException("Analytics Method already exists.");
             } catch (Exception e){
                 e.printStackTrace();
+                throw new AnalyticsMethodsBadRequestException(e.getMessage());
             }
         }
-        throw new AnalyticsMethodsUploadErrorException("Empty jar bundle.");
+        throw new AnalyticsMethodsBadRequestException("Empty jar bundle.");
     }
 
 }

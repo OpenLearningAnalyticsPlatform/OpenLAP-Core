@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Created by lechip on 10/11/15.
  */
-//@ResponseStatus(value=HttpStatus.NOT_FOUND, reason="Analytics Method not found")
 public class AnalyticsMethodNotFoundException extends RuntimeException {
 
     private	static	final Logger log =

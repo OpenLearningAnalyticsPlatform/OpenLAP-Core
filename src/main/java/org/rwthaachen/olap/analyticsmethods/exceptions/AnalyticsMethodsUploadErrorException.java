@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Created by lechip on 14/11/15.
  */
-@ResponseStatus(value= HttpStatus.INTERNAL_SERVER_ERROR, reason="Analytics Methods Internal Server Error")
 public class AnalyticsMethodsUploadErrorException extends RuntimeException {
 
     private	static	final Logger log =
@@ -17,7 +16,7 @@ public class AnalyticsMethodsUploadErrorException extends RuntimeException {
 
     public AnalyticsMethodsUploadErrorException(String message) {
         super(message);
-        log.error("Not found exception on request: " + message);
+        log.error("Upload Error Exception: " + message);
     }
 
 }

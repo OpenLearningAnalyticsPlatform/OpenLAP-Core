@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Created by lechip on 14/11/15.
  */
-@ResponseStatus(value= HttpStatus.BAD_REQUEST, reason="Analytics Method Metadata is not correctly constructed")
 public class AnalyticsMethodsBadRequestException extends RuntimeException  {
 
     private	static	final Logger log =
