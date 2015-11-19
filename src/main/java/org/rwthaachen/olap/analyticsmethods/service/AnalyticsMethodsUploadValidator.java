@@ -26,7 +26,7 @@ public class AnalyticsMethodsUploadValidator {
         AnalyticsMethodsValidationInformation validationInformation = new AnalyticsMethodsValidationInformation();
         classPathLoader = new AnalyticsMethodsClassPathLoader(analyticsMethodsJarsFolder);
 
-        // TODO make a method to validate non empty fields of the metadata
+        // Validate non empty fields of the metadata
         if(methodMetadata.getName().isEmpty()
                         || methodMetadata.getImplementingClass().isEmpty()
                         || methodMetadata.getCreator().isEmpty()
@@ -34,7 +34,8 @@ public class AnalyticsMethodsUploadValidator {
                 )
         {
             validationInformation.setValid(false);
-            validationInformation.setMessage("Name, Implementing Class, Author and Description must have content");
+            validationInformation.setMessage("Metadata Name, Implementing Class, "
+                    + "Author and Description must have content");
             return validationInformation;
         }
 

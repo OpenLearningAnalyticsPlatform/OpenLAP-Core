@@ -34,6 +34,7 @@ public class AnalyticsMethodsService {
 
     // Strings for method names
     private static final String JAR_EXTENSION = ".jar";
+    private static final String TEMP_FILE_SUFIX = "_temp";
 
     @Value("${analyticsMethodsJarFolder}")
     String analyticsMethodsJarsFolder;
@@ -128,4 +129,72 @@ public class AnalyticsMethodsService {
         throw new AnalyticsMethodsBadRequestException("Empty jar bundle.");
     }
 
+    /**
+     *
+     * @param methodMetadata
+     * @param id
+     *@param jarBundle  @return
+     */
+
+    public AnalyticsMethodMetadata updateAnalyticsMethod(AnalyticsMethodMetadata methodMetadata, String id, MultipartFile jarBundle) {
+        //TODO implement
+        AnalyticsMethodsValidationInformation validationInformation;
+        FileHandler fileHandler = new FileHandler();
+
+        //Try to fetch the method, if does not exist, throw exception
+        AnalyticsMethodMetadata result = analyticsMethodsRepository.findOne(id);
+
+        if (result == null)
+        {
+            throw new AnalyticsMethodNotFoundException("Analytics Method with id not found: " + methodMetadata.getId());
+        }
+        else
+        {
+            log.info("Attemting to update Analytics method: " + methodMetadata.getId());
+            //Make bundle required.
+            if (!jarBundle.isEmpty())
+            {
+                // Save the jar in the filesystem
+                try {
+                    AnalyticsMethodMetadata tempMetadata = (AnalyticsMethodMetadata) result.clone();
+                    //Name bundle method_temp.jar
+                    tempMetadata.setName(tempMetadata.getName() + TEMP_FILE_SUFIX);
+                    fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, tempMetadata.getName()
+                            + JAR_EXTENSION);
+                    //Perform validation with than name.
+                    //If valid, delete the old jar with the new one, check that there are no leftovers
+                    validationInformation = validator.validatemethod(tempMetadata, analyticsMethodsJarsFolder);
+                    if (validationInformation.isValid())
+                    {
+                        //delete temp file
+                        fileHandler.deleteFile(analyticsMethodsJarsFolder, tempMetadata.getName()
+                                + JAR_EXTENSION);
+                        //write real file
+                        fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, methodMetadata.getName()
+                                + JAR_EXTENSION);
+                        //update metadata
+                        result.updateWithMetadata(methodMetadata);
+                        return analyticsMethodsRepository.save(result);
+                    }
+                    else
+                    {
+                        //delete temp file
+                        fileHandler.deleteFile(analyticsMethodsJarsFolder, tempMetadata.getName()
+                                + JAR_EXTENSION);
+                        throw new AnalyticsMethodsBadRequestException(validationInformation.getMessage());
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    throw new AnalyticsMethodsUploadErrorException(e.getMessage());
+                } catch (CloneNotSupportedException e) {
+                    e.printStackTrace();
+                    throw new AnalyticsMethodsUploadErrorException(e.getMessage());
+                }
+            }
+            else
+            {
+                throw new AnalyticsMethodsBadRequestException("Empty jar bundle.");
+            }
+        }
+    }
 }

@@ -16,7 +16,7 @@ import java.net.URL;
  */
 
 @Entity
-public class AnalyticsMethodMetadata {
+public class AnalyticsMethodMetadata implements Cloneable{
 
     @Id
     @GeneratedValue
@@ -114,5 +114,15 @@ public class AnalyticsMethodMetadata {
             e.printStackTrace();
         }
         return super.toString();
+    }
+
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+
+    public void updateWithMetadata(AnalyticsMethodMetadata updatedMetadata) {
+        this.setCreator(updatedMetadata.getCreator());
+        this.setDescription(updatedMetadata.getDescription());
+        this.setImplementingClass(updatedMetadata.getImplementingClass());
     }
 }

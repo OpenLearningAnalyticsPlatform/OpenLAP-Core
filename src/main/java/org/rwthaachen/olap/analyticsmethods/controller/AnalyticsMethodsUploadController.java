@@ -81,17 +81,30 @@ public class AnalyticsMethodsUploadController {
     @RequestMapping
             (
                     value = "/AnalyticsMethods/{id}",
-                    method = RequestMethod.PUT
+                    method = RequestMethod.POST
             )
     public @ResponseBody  AnalyticsMethodMetadata updateAnalyticsMethod
             (
-                    @RequestBody AnalyticsMethodMetadata methodMetadata,
-                    @RequestParam(value = "file", required = false) String file,
+                    @RequestParam("methodMetadata") String methodMetadataText,
+                    @RequestParam("jarBundle") MultipartFile jarBundle,
                     @PathVariable String id
             )
     {
         //TODO Implement
-        return new AnalyticsMethodMetadata(id,file,"",methodMetadata.getDescription(),null);
+        ObjectMapper mapper = new ObjectMapper();
+        AnalyticsMethodMetadata methodMetadata = null;
+
+        try {
+            // Attempt to interpret the json to construct the metadata object. It has to be done like this because
+            // the json is sent as a form request text (since the file is also part of the form),
+            // which does not support directly JSON.
+            methodMetadata = mapper.readValue(methodMetadataText,
+                    AnalyticsMethodMetadata.class);
+            return analyticsMethodsService.updateAnalyticsMethod(methodMetadata, id, jarBundle);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new AnalyticsMethodsBadRequestException(e.getMessage());
+        }
     }
 
     @RequestMapping
