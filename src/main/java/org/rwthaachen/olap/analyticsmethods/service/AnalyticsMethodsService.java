@@ -1,8 +1,13 @@
 package org.rwthaachen.olap.analyticsmethods.service;
 
+import OLAPDataSet.DataSetConfigurationValidationResult;
+import OLAPDataSet.OLAPColumnConfigurationData;
+import OLAPDataSet.OLAPPortConfiguration;
+import core.AnalyticsMethod;
 import org.h2.jdbc.JdbcSQLException;
 import org.rwthaachen.olap.analyticsmethods.AnalyticsMethodsApplication;
 import org.rwthaachen.olap.analyticsmethods.dataAccess.AnalyticsMethodsRepository;
+import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodLoaderException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsUploadErrorException;
@@ -35,6 +40,8 @@ public class AnalyticsMethodsService {
     // Strings for method names
     private static final String JAR_EXTENSION = ".jar";
     private static final String TEMP_FILE_SUFIX = "_temp";
+    private static final String INPUT_PORTS = "input";
+    private static final String OUTPUT_PORTS = "output";
 
     @Value("${analyticsMethodsJarFolder}")
     String analyticsMethodsJarsFolder;
@@ -195,6 +202,91 @@ public class AnalyticsMethodsService {
             {
                 throw new AnalyticsMethodsBadRequestException("Empty jar bundle.");
             }
+        }
+    }
+
+    /**
+     *
+     * @param analyticsMethodId
+     * @param configuration
+     * @return
+     */
+    public DataSetConfigurationValidationResult validateConfiguration(
+            String analyticsMethodId, OLAPPortConfiguration configuration) throws AnalyticsMethodLoaderException
+    {
+        log.info("Attempting to validateConfiguration :" + configuration.getMapping()
+                + "for method with id: " + analyticsMethodId);
+        AnalyticsMethod method = loadAnalyticsMethodInstance(analyticsMethodId);
+        return method.getInput().validateConfiguration(configuration);
+    }
+
+    /**
+     *
+     * @param analyticsMethodId
+     * @return
+     * @throws AnalyticsMethodLoaderException
+     */
+    public AnalyticsMethod loadAnalyticsMethodInstance(String analyticsMethodId) throws AnalyticsMethodLoaderException
+    {
+        AnalyticsMethod method;
+        AnalyticsMethodsClassPathLoader classPathLoader =
+                new AnalyticsMethodsClassPathLoader(analyticsMethodsJarsFolder);
+
+        AnalyticsMethodMetadata analyticsMethodMetadata = analyticsMethodsRepository.findOne(analyticsMethodId);
+        if (analyticsMethodMetadata == null || analyticsMethodId == null)
+        {
+            throw new AnalyticsMethodNotFoundException("Analytics Method with id not found: " + analyticsMethodId);
+        }
+        else
+        {
+            log.info("Attempting to Load method: " + analyticsMethodMetadata.getName()
+                    + " for method with id: {" + analyticsMethodId + "}");
+            method = classPathLoader.loadClass(analyticsMethodMetadata.getImplementingClass());
+            return method;
+        }
+    }
+
+    /**
+     *
+     * @param id
+     * @return
+     */
+    public List<OLAPColumnConfigurationData> GetInputPortsForMethod(String id) {
+        return getPortsForMethod(id, INPUT_PORTS);
+    }
+
+    /**
+     *
+     * @param id
+     * @return
+     */
+    public List<OLAPColumnConfigurationData> GetOutputPortsForMethod(String id) {
+        return getPortsForMethod(id, OUTPUT_PORTS);
+    }
+
+    /**
+     * Returns a List of OLAPColumnConfigurationData of either the Input ports or output ports of the Analytics Method
+     * of the given <code>id</code>.
+     * @param id of the Analytics Method
+     * @param portParameter Either <code>INPUT_PORT</code> or <code>OUTPUT_PORTS</code>
+     * @return List of the OLAPColumnConfigurationData corresponding to the inputs or outputs of the Analytics Method
+     * @throws AnalyticsMethodLoaderException
+     */
+    private List<OLAPColumnConfigurationData> getPortsForMethod(String id, String portParameter)
+            throws AnalyticsMethodLoaderException
+    {
+
+        AnalyticsMethod method = loadAnalyticsMethodInstance(id);
+        log.info("Attempting to return " + portParameter + " ports of the method with id {" + id + "}");
+
+        switch (portParameter)
+        {
+            case INPUT_PORTS:
+                return method.getInputPorts();
+            case OUTPUT_PORTS:
+                return method.getOutputPorts();
+            default:
+                throw new AnalyticsMethodsBadRequestException("Only can return Inputs or Outputs");
         }
     }
 }

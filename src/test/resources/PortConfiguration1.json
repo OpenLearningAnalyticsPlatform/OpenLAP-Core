@@ -1,0 +1,28 @@
+{
+  "mapping" : [
+    {
+      "outputPort" : {
+        "type" : "STRING",
+        "id" : "incomingColumn",
+        "required" : false
+      },
+      "inputPort" : {
+        "type" : "STRING",
+        "id" : "inputColumn1",
+        "required" : true
+      }
+    },
+    {
+      "outputPort" : {
+        "type" : "INTEGER",
+        "id" : "incomingColumn",
+        "required" : false
+      },
+      "inputPort" : {
+        "type" : "INTEGER",
+        "id" : "outputColumn1",
+        "required" : true
+      }
+    }
+  ]
+}

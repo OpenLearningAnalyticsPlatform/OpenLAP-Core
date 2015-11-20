@@ -5,6 +5,7 @@ import OLAPDataSet.OLAPColumnConfigurationData;
 import OLAPDataSet.OLAPPortConfiguration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodLoaderException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsUploadErrorException;
@@ -118,9 +119,7 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
-        //TODO Implement
-        return new DataSetConfigurationValidationResult(true, configurationMapping.toString() +
-                " Validated by Analytics Method: " + id);
+        return analyticsMethodsService.validateConfiguration(id, configurationMapping);
     }
 
 
@@ -134,8 +133,7 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
-        //TODO Implement
-        return new ArrayList<OLAPColumnConfigurationData>(Arrays.asList(new OLAPColumnConfigurationData()));
+        return analyticsMethodsService.GetInputPortsForMethod(id);
     }
 
 
@@ -150,7 +148,7 @@ public class AnalyticsMethodsUploadController {
             )
     {
         //TODO Implement
-        return new ArrayList<OLAPColumnConfigurationData>(Arrays.asList(new OLAPColumnConfigurationData()));
+        return analyticsMethodsService.GetOutputPortsForMethod(id);
     }
 
     @ExceptionHandler(AnalyticsMethodNotFoundException.class)
@@ -192,7 +190,7 @@ public class AnalyticsMethodsUploadController {
                                                                       HttpServletRequest request)
     {
         AnalyticsMethodsErrorHandlerDTO errorObject = new AnalyticsMethodsErrorHandlerDTO(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                HttpStatus.BAD_REQUEST.value(),
                 e.getClass().getName(),
                 e.getMessage(),
                 request.getServletPath()
@@ -201,4 +199,19 @@ public class AnalyticsMethodsUploadController {
         return errorObject;
     }
 
+    @ExceptionHandler(AnalyticsMethodLoaderException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public @ResponseBody
+    AnalyticsMethodsErrorHandlerDTO handleMethodsUploadBadRequestException(AnalyticsMethodLoaderException e,
+                                                                           HttpServletRequest request)
+    {
+        AnalyticsMethodsErrorHandlerDTO errorObject = new AnalyticsMethodsErrorHandlerDTO(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                e.getClass().getName(),
+                e.getMessage(),
+                request.getServletPath()
+        );
+
+        return errorObject;
+    }
 }

@@ -2,6 +2,7 @@ package org.rwthaachen.olap.analyticsmethods.service;
 
 import core.AnalyticsMethod;
 import org.rwthaachen.olap.analyticsmethods.AnalyticsMethodsApplication;
+import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodLoaderException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodUploadValidationException;
 
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
@@ -45,7 +46,7 @@ public class AnalyticsMethodsUploadValidator {
             validationInformation.setValid(true);
             log.info("Validation successful: " + methodMetadata.getImplementingClass());
             log.info("OLAPInputOf the method: " + method.getInputPorts());
-        } catch (AnalyticsMethodUploadValidationException e) {
+        } catch (AnalyticsMethodLoaderException e) {
             validationInformation.setValid(false);
             validationInformation.appendMessage(e.getMessage());
         }

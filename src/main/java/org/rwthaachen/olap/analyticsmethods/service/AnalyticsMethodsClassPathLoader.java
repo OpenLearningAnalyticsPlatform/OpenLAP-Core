@@ -1,6 +1,7 @@
 package org.rwthaachen.olap.analyticsmethods.service;
 
 import core.AnalyticsMethod;
+import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodLoaderException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodUploadValidationException;
 import org.xeustechnologies.jcl.JarClassLoader;
 import org.xeustechnologies.jcl.JclObjectFactory;
@@ -35,7 +36,7 @@ public class AnalyticsMethodsClassPathLoader {
         factory = JclObjectFactory.getInstance(true);
     }
 
-    public AnalyticsMethod loadClass(String implementingClass) throws AnalyticsMethodUploadValidationException {
+    public AnalyticsMethod loadClass(String implementingClass) throws AnalyticsMethodLoaderException {
         //Create object of loaded class
         AnalyticsMethod abstractMethod;
         try{
@@ -45,13 +46,13 @@ public class AnalyticsMethodsClassPathLoader {
         catch (JclException e)
         {
             e.printStackTrace();
-            throw new AnalyticsMethodUploadValidationException("The class " + implementingClass +
+            throw new AnalyticsMethodLoaderException("The class " + implementingClass +
                     " was not found or does not implement the framework.");
         }
         catch (java.lang.NoSuchMethodError error)
         {
             error.printStackTrace();
-            throw new AnalyticsMethodUploadValidationException("The class " + implementingClass +
+            throw new AnalyticsMethodLoaderException("The class " + implementingClass +
                     " does not have an empty constructor.");
         }
     }
