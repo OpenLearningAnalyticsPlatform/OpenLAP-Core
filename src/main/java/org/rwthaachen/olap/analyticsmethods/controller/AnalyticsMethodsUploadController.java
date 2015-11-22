@@ -58,8 +58,8 @@ public class AnalyticsMethodsUploadController {
             )
     public @ResponseBody AnalyticsMethodMetadata uploadAnalyticsMethod
     (
-            @RequestParam ("methodMetadata") String methodMetadataText,
-            @RequestParam ("jarBundle") MultipartFile jarBundle
+            @RequestParam ("jarBundle") MultipartFile jarBundle,
+            @RequestParam ("methodMetadata") String methodMetadataText
     )
     {
         ObjectMapper mapper = new ObjectMapper();

@@ -1,0 +1,9 @@
+{
+  "content": {
+    "exception": "org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException",
+    "path": "/AnalyticsMethods/2",
+    "errorMessage": "Analytics Method with id not found: 2",
+    "timestamp": 1448208357,
+    "status": 404
+  }
+}

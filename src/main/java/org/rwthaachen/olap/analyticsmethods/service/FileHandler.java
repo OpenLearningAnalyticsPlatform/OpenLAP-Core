@@ -1,6 +1,9 @@
 package org.rwthaachen.olap.analyticsmethods.service;
 
+import org.rwthaachen.olap.analyticsmethods.AnalyticsMethodsApplication;
 import org.rwthaachen.olap.analyticsmethods.dataAccess.AnalyticsMethodsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedOutputStream;
@@ -14,7 +17,17 @@ import java.nio.file.Files;
  */
 public class FileHandler {
 
-    public void saveFile(MultipartFile fileToSave, String savingFolder, String fileName) throws IOException {
+    private final Logger log;
+
+    public FileHandler(Logger log) {
+        this.log = log;
+    }
+
+    public void saveFile(MultipartFile fileToSave, String savingFolder, String fileName) throws IOException,
+            SecurityException {
+        // Create folder if it does not exists
+        createFolderIfNotExisting(savingFolder);
+
         byte[] bytes = fileToSave.getBytes();
 
         BufferedOutputStream stream = new BufferedOutputStream
@@ -29,8 +42,30 @@ public class FileHandler {
         stream.close();
     }
 
-    public void deleteFile(String analyticsMethodsRepository, String fileName){
-        File fileToDelete= new File(analyticsMethodsRepository + fileName);
+    public void deleteFile(String deletionFolder, String fileName){
+        File fileToDelete= new File(deletionFolder + fileName);
         fileToDelete.delete();
+    }
+
+    public void deleteFolder(String deletionFolder){
+        deleteFile(deletionFolder,"");
+    }
+
+    private void createFolderIfNotExisting(String savingFolder) throws SecurityException {
+        File theDir = new File(savingFolder);
+        // if the directory does not exist, create it
+        if (!theDir.exists()) {
+            log.info("Creating directory: " + savingFolder);
+
+            boolean result = false;
+
+            //Can throw SecurityException
+            theDir.mkdir();
+            result = true;
+
+            if(result) {
+                log.info("DIR created: " + savingFolder);
+            }
+        }
     }
 }

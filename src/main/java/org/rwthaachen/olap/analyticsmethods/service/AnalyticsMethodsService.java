@@ -49,7 +49,7 @@ public class AnalyticsMethodsService {
     @Autowired
     AnalyticsMethodsRepository analyticsMethodsRepository;
 
-    @Autowired
+    @Autowired(required = false)
     DataBaseLoader databaseLoader;
 
     @Autowired
@@ -97,7 +97,7 @@ public class AnalyticsMethodsService {
             AnalyticsMethodMetadata methodMetadata, MultipartFile jarBundle) {
 
         AnalyticsMethodsValidationInformation validationInformation;
-        FileHandler fileHandler = new FileHandler();
+        FileHandler fileHandler = new FileHandler(log);
 
         if (!jarBundle.isEmpty())
         {
@@ -144,9 +144,8 @@ public class AnalyticsMethodsService {
      */
 
     public AnalyticsMethodMetadata updateAnalyticsMethod(AnalyticsMethodMetadata methodMetadata, String id, MultipartFile jarBundle) {
-        //TODO implement
         AnalyticsMethodsValidationInformation validationInformation;
-        FileHandler fileHandler = new FileHandler();
+        FileHandler fileHandler = new FileHandler(log);
 
         //Try to fetch the method, if does not exist, throw exception
         AnalyticsMethodMetadata result = analyticsMethodsRepository.findOne(id);
@@ -166,6 +165,7 @@ public class AnalyticsMethodsService {
                     AnalyticsMethodMetadata tempMetadata = (AnalyticsMethodMetadata) result.clone();
                     //Name bundle method_temp.jar
                     tempMetadata.setName(tempMetadata.getName() + TEMP_FILE_SUFIX);
+                    tempMetadata.setImplementingClass(methodMetadata.getImplementingClass());
                     fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, tempMetadata.getName()
                             + JAR_EXTENSION);
                     //Perform validation with than name.

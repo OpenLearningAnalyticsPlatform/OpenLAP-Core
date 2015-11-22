@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -15,7 +16,9 @@ import javax.annotation.PostConstruct;
  * A service class bean to load data programatically when using H2 for testing
  */
 @Service
+@Profile("development")
 public class DataBaseLoader {
+
     @Value("${analyticsMethodsJarFolder}")
     String analyticsMethodsJarsFolder;
 
@@ -23,7 +26,7 @@ public class DataBaseLoader {
     private	static	final Logger log	=
             LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
 
-    @Autowired
+    @Autowired(required	= false)
     public DataBaseLoader(AnalyticsMethodsRepository analyticsMethodsRepository) {
         this.analyticsMethodsRepository = analyticsMethodsRepository;
     }
