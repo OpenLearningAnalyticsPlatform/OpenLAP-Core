@@ -43,14 +43,11 @@ public class AnalyticsMethodsService {
     private static final String INPUT_PORTS = "input";
     private static final String OUTPUT_PORTS = "output";
 
-    @Value("${analyticsMethodsJarFolder}")
+    @Value("${analyticsMethodsJarsFolder}")
     String analyticsMethodsJarsFolder;
 
     @Autowired
     AnalyticsMethodsRepository analyticsMethodsRepository;
-
-    @Autowired(required = false)
-    DataBaseLoader databaseLoader;
 
     @Autowired
     AnalyticsMethodsUploadValidator validator;
@@ -104,14 +101,15 @@ public class AnalyticsMethodsService {
             try
             {
                 // Save the jar in the filesystem
-                fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, methodMetadata.getName() + JAR_EXTENSION);
+                fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, methodMetadata.getFilename()
+                        + JAR_EXTENSION);
 
                 //Validation
                 validationInformation = validator.validatemethod(methodMetadata, analyticsMethodsJarsFolder);
                 if (!validationInformation.isValid())
                 {
                     // If the submitted jar is not valid, remove it from the filesystem
-                    fileHandler.deleteFile(analyticsMethodsJarsFolder, methodMetadata.getName() + JAR_EXTENSION);
+                    fileHandler.deleteFile(analyticsMethodsJarsFolder, methodMetadata.getFilename() + JAR_EXTENSION);
                     // Throw exception (that can be used by the controller to send the bad request method)
                     throw new AnalyticsMethodsUploadErrorException(validationInformation.getMessage());
                 }
@@ -143,7 +141,8 @@ public class AnalyticsMethodsService {
      *@param jarBundle  @return
      */
 
-    public AnalyticsMethodMetadata updateAnalyticsMethod(AnalyticsMethodMetadata methodMetadata, String id, MultipartFile jarBundle) {
+    public AnalyticsMethodMetadata updateAnalyticsMethod(AnalyticsMethodMetadata methodMetadata,
+                                                         String id, MultipartFile jarBundle) {
         AnalyticsMethodsValidationInformation validationInformation;
         FileHandler fileHandler = new FileHandler(log);
 
@@ -164,9 +163,9 @@ public class AnalyticsMethodsService {
                 try {
                     AnalyticsMethodMetadata tempMetadata = (AnalyticsMethodMetadata) result.clone();
                     //Name bundle method_temp.jar
-                    tempMetadata.setName(tempMetadata.getName() + TEMP_FILE_SUFIX);
+                    tempMetadata.setName(tempMetadata.getFilename() + TEMP_FILE_SUFIX);
                     tempMetadata.setImplementingClass(methodMetadata.getImplementingClass());
-                    fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, tempMetadata.getName()
+                    fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, tempMetadata.getFilename()
                             + JAR_EXTENSION);
                     //Perform validation with than name.
                     //If valid, delete the old jar with the new one, check that there are no leftovers
@@ -174,10 +173,10 @@ public class AnalyticsMethodsService {
                     if (validationInformation.isValid())
                     {
                         //delete temp file
-                        fileHandler.deleteFile(analyticsMethodsJarsFolder, tempMetadata.getName()
+                        fileHandler.deleteFile(analyticsMethodsJarsFolder, tempMetadata.getFilename()
                                 + JAR_EXTENSION);
                         //write real file
-                        fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, methodMetadata.getName()
+                        fileHandler.saveFile(jarBundle, analyticsMethodsJarsFolder, methodMetadata.getFilename()
                                 + JAR_EXTENSION);
                         //update metadata
                         result.updateWithMetadata(methodMetadata);
@@ -186,7 +185,7 @@ public class AnalyticsMethodsService {
                     else
                     {
                         //delete temp file
-                        fileHandler.deleteFile(analyticsMethodsJarsFolder, tempMetadata.getName()
+                        fileHandler.deleteFile(analyticsMethodsJarsFolder, tempMetadata.getFilename()
                                 + JAR_EXTENSION);
                         throw new AnalyticsMethodsBadRequestException(validationInformation.getMessage());
                     }
@@ -239,7 +238,7 @@ public class AnalyticsMethodsService {
         }
         else
         {
-            log.info("Attempting to Load method: " + analyticsMethodMetadata.getName()
+            log.info("Attempting to Load method: " + analyticsMethodMetadata.getFilename()
                     + " for method with id: {" + analyticsMethodId + "}");
             method = classPathLoader.loadClass(analyticsMethodMetadata.getImplementingClass());
             return method;

@@ -31,6 +31,8 @@ public class AnalyticsMethodMetadata implements Cloneable{
     String implementingClass;
     @Column(nullable = false)
     String binariesLocation;
+    @Column(unique=true, nullable=false)
+    String filename;
 
     public AnalyticsMethodMetadata() {
         this.id = "";
@@ -39,6 +41,7 @@ public class AnalyticsMethodMetadata implements Cloneable{
         this.description = "";
         this.binariesLocation = null;
         this.implementingClass = "";
+        this.filename = "";
     }
 
     public AnalyticsMethodMetadata(String name, String creator, String description,
@@ -105,6 +108,14 @@ public class AnalyticsMethodMetadata implements Cloneable{
         this.implementingClass = implementingClass;
     }
 
+    public String getFilename() {
+        return filename;
+    }
+
+    public void setFilename(String filename) {
+        this.filename = filename;
+    }
+
     @Override
     public String toString() {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
@@ -124,5 +135,6 @@ public class AnalyticsMethodMetadata implements Cloneable{
         this.setCreator(updatedMetadata.getCreator());
         this.setDescription(updatedMetadata.getDescription());
         this.setImplementingClass(updatedMetadata.getImplementingClass());
+        this.setFilename(updatedMetadata.getFilename());
     }
 }

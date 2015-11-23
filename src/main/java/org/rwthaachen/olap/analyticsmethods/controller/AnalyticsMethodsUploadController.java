@@ -91,7 +91,6 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
-        //TODO Implement
         ObjectMapper mapper = new ObjectMapper();
         AnalyticsMethodMetadata methodMetadata = null;
 
@@ -111,7 +110,7 @@ public class AnalyticsMethodsUploadController {
     @RequestMapping
             (
                     value = "/AnalyticsMethods/{id}/validateConfiguration",
-                    method = RequestMethod.POST
+                    method = RequestMethod.PUT
             )
     public @ResponseBody DataSetConfigurationValidationResult validateConfiguration
             (
@@ -147,7 +146,6 @@ public class AnalyticsMethodsUploadController {
                     @PathVariable String id
             )
     {
-        //TODO Implement
         return analyticsMethodsService.GetOutputPortsForMethod(id);
     }
 

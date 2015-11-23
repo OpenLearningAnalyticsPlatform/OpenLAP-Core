@@ -1,6 +1,7 @@
 {
   "name":"AnalyticsMethodImplementationForUpdating",
+  "filename":"AnalyticsMethodImplementationForUpdating",
   "creator":"lechip",
   "description":"A Method",
-  "implementingClass": "main.AnalyticsMethodImplementationForUpdating"
+  "implementingClass": "main.AnotherClass"
 }

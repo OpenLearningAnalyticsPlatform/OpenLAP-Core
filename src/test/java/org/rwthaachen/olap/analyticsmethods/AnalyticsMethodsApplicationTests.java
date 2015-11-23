@@ -3,9 +3,7 @@ package org.rwthaachen.olap.analyticsmethods;
 import com.jayway.jsonpath.JsonPath;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.rwthaachen.olap.analyticsmethods.controller.AnalyticsMethodsUploadController;
 import org.rwthaachen.olap.analyticsmethods.dataAccess.AnalyticsMethodsRepository;
@@ -32,6 +30,7 @@ import java.io.InputStream;
 import java.net.URL;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -45,58 +44,94 @@ public class AnalyticsMethodsApplicationTests {
 
 	// FILES
 	private static final String RESOURCE_JAR_UPLOAD =
-			"FrameworkImplementationJars/AnalyticsMethodImplementation.jar";
+			"frameworkImplementationJar/AnalyticsMethodImplementation.jar";
 	private static final String RESOURCE_JAR_UPLOAD_FOR_UPDATING =
-			"FrameworkImplementationJars/AnalyticsMethodImplementationForUpdating.jar";
+			"frameworkImplementationJar/AnalyticsMethodImplementationForUpdating.jar";
 	private static final String RESOURCE_JAR_UPLOAD_EMPTY_FILE =
-			"FrameworkImplementationJars/emptyFile.txt";
-
+			"frameworkImplementationJar/emptyFile.txt";
+	private static final String RESOURCE_JAR_TEST_METHOD =
+			"frameworkImplementationJar/AnalyticsMethodForTesting.jar";
 	//MANIFESTS
 	private static final String RESOURCE_JSON_UPLOAD_MANIFEST =
-			"fstmp2/UploadMethodManifest_correct.json";
+			"jsonManifest/UploadMethodManifest_correct.json";
+	private static final String RESOURCE_JSON_UPLOAD_MANIFEST_WRONG_FILENAME =
+			"jsonManifest/UploadMethodManifest_wrong_filename.json";
 	private static final String RESOURCE_JSON_FOR_UPDATING_MANIFEST =
-			"AnalyticsMethodUploadJsonManifest/UploadMethodManifestForUpdating.json";
+			"jsonManifest/UploadMethodManifestForUpdating.json";
 	private static final String RESOURCE_JSON_UPLOAD_MANIFEST_INCORRECT_CLASS =
-			"AnalyticsMethodUploadJsonManifest/UploadMethodManifest_incorrectClass.json";
+			"jsonManifest/UploadMethodManifest_incorrectClass.json";
 	private static final String RESOURCE_JSON_UPLOAD_MANIFEST_EMPTYFILE =
-			"AnalyticsMethodUploadJsonManifest/UploadMethodManifest_emptyFile.json";
+			"jsonManifest/UploadMethodManifest_emptyFile.json";
 	private static final String RESOURCE_JSON_UPDATE_MANIFEST_INCORRECT_CLASS =
-			"AnalyticsMethodUploadJsonManifest/UpdateMethodManifest_incorrectClass.json";
+			"jsonManifest/UpdateMethodManifest_incorrectClass.json";
+	private static final String RESOURCE_JSON_MANIFEST_TEST_METHOD =
+			"jsonManifest/UploadMethodManifestForTesting.json";
+
+	//CONFIGURATION JSON
+	private static final String RESOURCE_JSON_CONFIGURATION_VALID =
+			"olapPortconfiguration/valid_portConfiguration.json";
+	private static final String RESOURCE_JSON_CONFIGURATION_WRONG =
+			"olapPortconfiguration/wrong_portConfiguration.json";
+
 
 	private	static final Logger log =
 			LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
 
-	// Won't work witouth the WebAppConfiguration
+	// Won't work Test without the WebAppConfiguration
 	@Autowired
 	private WebApplicationContext wac;
 
 	@Autowired
 	private AnalyticsMethodsUploadController controller;
+
 	@Autowired
 	private AnalyticsMethodsRepository repository;
 
 	private MockMvc mockMvc;
 
-	@Value("${analyticsMethodsJarFolder}")
-	private String analyticsMethodsJarFolder;
+	@Value("${analyticsMethodsJarsFolder}")
+	String analyticsMethodsJarsFolder;
 
+	String testingMethodId;
 
 	@Before
-	public void setup() {
+	public void setup() throws Exception{
 		this.mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
+		//Create a Method to test
+		saveTestingMethod();
+	}
 
+	private void saveTestingMethod() throws Exception{
+		// Test with jar that implements the framework correctly
+		MockMultipartFile fstmp = prepareMultiPartFile(RESOURCE_JAR_TEST_METHOD);
+		String jsonTxt1 = prepareJsonString(RESOURCE_JSON_MANIFEST_TEST_METHOD);
+		MvcResult result = mockMvc.perform
+				(
+						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods")
+								.file(fstmp)
+								.param("methodMetadata",jsonTxt1)
+								.contentType(MediaType.MULTIPART_FORM_DATA)
+								.accept(MediaType.APPLICATION_JSON)
+				)
+				.andExpect(status().isOk())
+				.andReturn();
+
+		log.info("TEST - AnalyticsMethod uploaded: " + result.getResponse().getContentAsString());
+		testingMethodId = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
+		log.info("TEST - AnalyticsMethod id: " + testingMethodId);
 	}
 
 	@After
 	public void testsCleanup(){
 		// Delete Jar folder
-		deleteFolder(analyticsMethodsJarFolder);
+		deleteFolder(analyticsMethodsJarsFolder);
+		repository.deleteAll();
 	}
 
 	private void deleteFolder(String dir) {
 		File directoryToDelete = new File(dir);
 		try {
-			log.info("Deleting folder :" + directoryToDelete);
+			log.info("TEST - Deleting folder :" + directoryToDelete);
 			FileUtils.deleteDirectory(directoryToDelete);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -105,31 +140,27 @@ public class AnalyticsMethodsApplicationTests {
 	}
 
 	@Test
-	public void contextLoads() {
-	}
-
-	@Test
 	public void controllerViewAllAnalyticsMethodsTest() throws Exception {
 		// Test well formed
 		this.mockMvc.perform(get("/AnalyticsMethods"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$[0].id").value("1"));
+				.andExpect(jsonPath("$[0].id").value(testingMethodId));
 
 	}
 
 	@Test
 	public void controllerViewAnalyticsMethodByIdTest() throws Exception {
 
-		// test well formed with existing method
-		this.mockMvc.perform(get("/AnalyticsMethods/1"))
+		// Test well formed Test with existing method
+		this.mockMvc.perform(get("/AnalyticsMethods/"+testingMethodId))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.id").value("1"))
-				.andExpect(jsonPath("$.name").value("A Method"))
+				.andExpect(jsonPath("$.id").value(testingMethodId))
+				.andExpect(jsonPath("$.name").value("Analytics Method For Testing"))
 				.andExpect(jsonPath("$.creator").value("lechip"))
-				.andExpect(jsonPath("$.description").value("First Method"))
-				.andExpect(jsonPath("$.implementingClass").value("com.example.core.method1"))
-				.andExpect(jsonPath("$.binariesLocation").value(analyticsMethodsJarFolder));
-		// test with error for not found
+				.andExpect(jsonPath("$.description").value("A Method For Testing"))
+				.andExpect(jsonPath("$.implementingClass").value("main.AnalyticsMethodForTesting"));
+				//.andExpect(jsonPath("$.binariesLocation").value(analyticsMethodsJarFolder));
+		// Test with error for not found
 		this.mockMvc.perform(get("/AnalyticsMethods/10"))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.content.exception")
@@ -151,10 +182,9 @@ public class AnalyticsMethodsApplicationTests {
 								.accept(MediaType.APPLICATION_JSON)
 				)
 				.andExpect(status().isOk())
-				.andDo(print())
 				.andReturn();
 
-		log.info("upload response content: " + result.getResponse().getContentAsString());
+		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
 
 		// Test with jar that implements the framework correctly, but sends wrong information about implementing class
 		String jsonTxt2 = prepareJsonString(RESOURCE_JSON_UPLOAD_MANIFEST_INCORRECT_CLASS);
@@ -169,9 +199,8 @@ public class AnalyticsMethodsApplicationTests {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.content.exception")
 						.value("org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException"))
-				.andDo(print())
 				.andReturn();
-		log.info("upload response content: " + result.getResponse().getContentAsString());
+		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
 
 		// Test with empty file
 		MockMultipartFile fstmp2 = prepareMultiPartFile(RESOURCE_JAR_UPLOAD_EMPTY_FILE);
@@ -188,59 +217,56 @@ public class AnalyticsMethodsApplicationTests {
 				.andExpect(jsonPath("$.content.exception")
 						.value("org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException"))
 				.andExpect(jsonPath("$.content.errorMessage").value("Empty jar bundle."))
-				.andDo(print())
 				.andReturn();
-		log.info("upload response content: " + result.getResponse().getContentAsString());
-		// TODO test with incorrect metadata (PMML and security key)
+		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
+
+		// Test with wrong filename
+		MockMultipartFile fstmp3 = prepareMultiPartFile(RESOURCE_JAR_UPLOAD);
+		String jsonTxt4 = prepareJsonString(RESOURCE_JSON_UPLOAD_MANIFEST_WRONG_FILENAME);
+		result = mockMvc.perform
+				(
+						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods")
+								.file(fstmp3)
+								.param("methodMetadata",jsonTxt4)
+								.contentType(MediaType.MULTIPART_FORM_DATA)
+								.accept(MediaType.APPLICATION_JSON)
+				)
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.content.exception")
+						.value("org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException"))
+				.andReturn();
+		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
+
+		// TODO Test with incorrect metadata (PMML and security key)
 	}
 
 
 	@Test
 	public void controllerUpdateAnalyticsMethodTest() throws Exception{
 
-		String methodId;
-		// Preparation
+		MvcResult result;
 		MockMultipartFile fstmp = prepareMultiPartFile(RESOURCE_JAR_UPLOAD_FOR_UPDATING);
 		String jsonTxt1 = prepareJsonString(RESOURCE_JSON_FOR_UPDATING_MANIFEST);
-		MvcResult result = mockMvc.perform
-				(
-						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods")
-								.file(fstmp)
-								.param("methodMetadata",jsonTxt1)
-								.contentType(MediaType.MULTIPART_FORM_DATA)
-								.accept(MediaType.APPLICATION_JSON)
-				)
-				.andExpect(status().isOk())
-				.andDo(print())
-				.andReturn();
-
-
-		log.info("upload response content: " + result.getResponse().getContentAsString());
-		methodId = JsonPath.read(result.getResponse().getContentAsString(),"$.id");
-		log.info("ID of uploaded method: " + methodId);
-
 		// Test with jar that implements the framework correctly
 		MockMultipartFile fstmp2 = prepareMultiPartFile(RESOURCE_JAR_UPLOAD_FOR_UPDATING);
-		String jsonTxt2 = prepareJsonString(RESOURCE_JSON_FOR_UPDATING_MANIFEST);
 		result = mockMvc.perform
 				(
-						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods/" + methodId)
+						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods/" + testingMethodId)
 								.file(fstmp)
 								.param("methodMetadata",jsonTxt1)
 								.contentType(MediaType.MULTIPART_FORM_DATA)
 								.accept(MediaType.APPLICATION_JSON)
 				)
 				.andExpect(status().isOk())
-				.andDo(print())
 				.andReturn();
 
-		log.info("upload response content: " + result.getResponse().getContentAsString());
+		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
 
 		// Test with jar that implements the framework correctly, but sends wrong information about implementing class
 		String jsonTxt3 = prepareJsonString(RESOURCE_JSON_UPDATE_MANIFEST_INCORRECT_CLASS);
 		result = mockMvc.perform
 				(
-						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods/" + methodId)
+						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods/" + testingMethodId)
 								.file(fstmp2)
 								.param("methodMetadata",jsonTxt3)
 								.contentType(MediaType.MULTIPART_FORM_DATA)
@@ -249,15 +275,14 @@ public class AnalyticsMethodsApplicationTests {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.content.exception")
 						.value("org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException"))
-				.andDo(print())
 				.andReturn();
-		log.info("upload response content: " + result.getResponse().getContentAsString());
+		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
 
 		// Test with invalid (empty) file
 		MockMultipartFile fstmp3 = prepareMultiPartFile(RESOURCE_JAR_UPLOAD_EMPTY_FILE);
 		result = mockMvc.perform
 				(
-						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods/" + methodId)
+						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods/" + testingMethodId)
 								.file(fstmp3)
 								.param("methodMetadata",jsonTxt3)
 								.contentType(MediaType.MULTIPART_FORM_DATA)
@@ -267,37 +292,85 @@ public class AnalyticsMethodsApplicationTests {
 				.andExpect(jsonPath("$.content.exception")
 						.value("org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException"))
 				.andExpect(jsonPath("$.content.errorMessage").value("Empty jar bundle."))
-				.andDo(print())
 				.andReturn();
-		log.info("upload response content: " + result.getResponse().getContentAsString());
+		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
 
-		// TODO test with incorrect metadata (PMML and security key)
+		// TODO Test with incorrect metadata (PMML and security key)
 	}
 
 	@Test
-	public void controllerValidateConfigurationTest(){
-		// TODO test with correct configuration
-		// TODO test with incorrect configuration
-		// TODO test with wrong method id
+	public void controllerValidateConfigurationTest() throws Exception{
+		MvcResult result;
+
+		// Test with correct olapPortconfiguration
+		String jsonTxt1 = prepareJsonString(RESOURCE_JSON_CONFIGURATION_VALID);
+		result = mockMvc.perform(put("/AnalyticsMethods/"+testingMethodId+"/validateConfiguration")
+						.contentType(MediaType.APPLICATION_JSON).content(jsonTxt1))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.validationMessage").value("Valid configuration"))
+				.andExpect(jsonPath("$.valid").value(true))
+				.andReturn();
+		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
+
+		// Test with incorrect olapPortconfiguration
+		String jsonTxt2 = prepareJsonString(RESOURCE_JSON_CONFIGURATION_WRONG);
+		result = mockMvc.perform(put("/AnalyticsMethods/"+testingMethodId+"/validateConfiguration")
+				.contentType(MediaType.APPLICATION_JSON).content(jsonTxt2))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.valid").value(false))
+				.andReturn();
+		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
+		// Test with wrong method id
+		result = mockMvc.perform(put("/AnalyticsMethods/worngId/validateConfiguration")
+				.contentType(MediaType.APPLICATION_JSON).content(jsonTxt2))
+				.andExpect(status().isNotFound())
+				.andReturn();
+		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
 	}
 
 	@Test
-	public void controllerGetInputTest(){
-		// TODO test with normal request
-		// TODO test with wrong method id
+	public void controllerGetInputTest() throws Exception {
+		MvcResult result;
 
+		// Test with normal request
+		result = mockMvc.perform(get("/AnalyticsMethods/"+testingMethodId+"/getInputPorts"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].id").value("inputColumn1"))
+				.andExpect(jsonPath("$[0].type").value("STRING"))
+				.andExpect(jsonPath("$[0].required").value(true))
+				.andReturn();
+		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
+
+		// Test with wrong method id
+		result = mockMvc.perform(get("/AnalyticsMethods/worngId/getInputPorts"))
+				.andExpect(status().isNotFound())
+				.andReturn();
+		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
 	}
 
 	@Test
-	public void controllerGetOutputTest(){
-		// TODO test with normal request
-		// TODO test with wrong method id
+	public void controllerGetOutputTest() throws Exception {
+		MvcResult result;
+
+		// Test with normal request
+		result = mockMvc.perform(get("/AnalyticsMethods/"+testingMethodId+"/getOutputPorts"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].id").value("outputColumn1"))
+				.andExpect(jsonPath("$[0].type").value("INTEGER"))
+				.andReturn();
+		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
+
+		// Test with wrong method id
+		result = mockMvc.perform(get("/AnalyticsMethods/worngId/getOutputPorts"))
+				.andExpect(status().isNotFound())
+				.andReturn();
+		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
 	}
 
 	/**
-	 * Helper method to prepare a String with the JSON of a resource file
+	 * Helper method to prepare a String Test with the JSON of a resource file
 	 * @param resourceJsonUploadManifest the complete filepath of the resource json
-	 * @return a String with the Json read from the resource json file
+	 * @return a String Test with the Json read from the resource json file
 	 * @throws Exception
 	 */
 	private String prepareJsonString(String resourceJsonUploadManifest) throws Exception {
@@ -306,19 +379,19 @@ public class AnalyticsMethodsApplicationTests {
 	}
 
 	/**
-	 * Helper method to prepare a MockMultipartFile with the content of a file in the resource folder
+	 * Helper method to prepare a MockMultipartFile Test with the content of a file in the resource folder
 	 * @param resourceJarUpload the complete filepath of the resource jar file
-	 * @return a MockMultipartFile with the content of the resource jar file
+	 * @return a MockMultipartFile Test with the content of the resource jar file
 	 * @throws Exception
 	 */
 	private MockMultipartFile prepareMultiPartFile(String resourceJarUpload) throws Exception {
 		// Load the directory as a resource
 		URL dirURL = getClass().getClassLoader().getResource(resourceJarUpload);
-		log.info("Resource dir URL: " + dirURL.toString());
+		log.info("TEST - Resource dir URL: " + dirURL.toString());
 		// Make file from the uri
 		File file = new File(dirURL.toURI());
 		// Check file content
-		log.info("File check: isFile:" + file.isFile()
+		log.info("TEST - File check: isFile:" + file.isFile()
 				+ ",  fileName: " +file.getName()
 				+ ",  exists: " + file.exists());
 		// Make an input stream for the mock

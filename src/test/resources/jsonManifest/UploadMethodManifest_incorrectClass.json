@@ -1,5 +1,6 @@
 {
   "name":"AnalyticsMethodImplementationWrong",
+  "filename":"AnalyticsMethodImplementationWrong",
   "creator":"lechip",
   "description":"A Method",
   "implementingClass": "main.AnotherClass"

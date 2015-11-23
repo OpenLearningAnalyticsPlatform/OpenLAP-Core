@@ -1,0 +1,8 @@
+{
+  "id":"1",
+  "name":"Development Analytics Method",
+  "creator":"lechip",
+  "description":"Analytics Method for Development Environment.",
+  "filename":"AnalyticsMethodImplementationForUpdating",
+  "implementingClass": "main.AnalyticsMethodImplementationForUpdating"
+}
