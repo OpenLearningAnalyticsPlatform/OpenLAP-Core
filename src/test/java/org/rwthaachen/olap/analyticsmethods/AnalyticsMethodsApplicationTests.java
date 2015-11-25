@@ -144,7 +144,7 @@ public class AnalyticsMethodsApplicationTests {
 		// Test well formed
 		this.mockMvc.perform(get("/AnalyticsMethods"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$[0].id").value(testingMethodId));
+				.andExpect(jsonPath("$[0].id").exists());
 
 	}
 

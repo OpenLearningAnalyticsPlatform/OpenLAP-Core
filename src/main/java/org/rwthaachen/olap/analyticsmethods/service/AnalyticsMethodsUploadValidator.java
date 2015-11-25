@@ -8,6 +8,7 @@ import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodUploadVali
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -20,6 +21,9 @@ import java.util.regex.Pattern;
 public class AnalyticsMethodsUploadValidator {
 
     private AnalyticsMethodsClassPathLoader classPathLoader;
+
+    @Value("${pmmlxsd}")
+    private String pmmlXsdUrl;
 
     protected static final Logger log =
             LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
@@ -50,7 +54,13 @@ public class AnalyticsMethodsUploadValidator {
         // Validate that the class exist and implements the interface and that the class implements the interface
         try {
             AnalyticsMethod method = classPathLoader.loadClass(methodMetadata.getImplementingClass());
+            // Validate pmml if the method has a PMML
             validationInformation.setValid(true);
+            if(method.hasPMML())
+            {
+                SimpleXmlSchemaValidator
+                        .validateXML(validationInformation, method.getPMMLInputStream(),pmmlXsdUrl);
+            }
             log.info("Validation successful: " + methodMetadata.getImplementingClass());
             log.info("OLAPInputOf the method: " + method.getInputPorts());
         } catch (AnalyticsMethodLoaderException e) {
