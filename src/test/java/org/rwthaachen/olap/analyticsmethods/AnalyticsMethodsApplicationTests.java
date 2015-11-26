@@ -51,6 +51,11 @@ public class AnalyticsMethodsApplicationTests {
 			"frameworkImplementationJar/emptyFile.txt";
 	private static final String RESOURCE_JAR_TEST_METHOD =
 			"frameworkImplementationJar/AnalyticsMethodForTesting.jar";
+	private static final String RESOURCE_JAR_UPLOAD_VALID_PMML =
+			"frameworkImplementationJar/AnalyticsMethodImplementationWithValidPMML.jar";
+	private static final String RESOURCE_JAR_UPLOAD_INVALID_PMML =
+			"frameworkImplementationJar/AnalyticsMethodImplementationWithInvalidPMML.jar";
+
 	//MANIFESTS
 	private static final String RESOURCE_JSON_UPLOAD_MANIFEST =
 			"jsonManifest/UploadMethodManifest_correct.json";
@@ -66,6 +71,10 @@ public class AnalyticsMethodsApplicationTests {
 			"jsonManifest/UpdateMethodManifest_incorrectClass.json";
 	private static final String RESOURCE_JSON_MANIFEST_TEST_METHOD =
 			"jsonManifest/UploadMethodManifestForTesting.json";
+	private static final String RESOURCE_JSON_MANIFEST_VALID_PMML =
+			"jsonManifest/UpdateMethodManifest_WithCorrectPMML.json";
+	private static final String RESOURCE_JSON_MANIFEST_INVALID_PMML =
+			"jsonManifest/UpdateMethodManifest_WithInorrectPMML.json";
 
 	//CONFIGURATION JSON
 	private static final String RESOURCE_JSON_CONFIGURATION_VALID =
@@ -237,7 +246,35 @@ public class AnalyticsMethodsApplicationTests {
 				.andReturn();
 		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
 
-		// TODO Test with incorrect metadata (PMML and security key)
+		// Test with correct metadata (PMML and security key)
+		MockMultipartFile fstmp4 = prepareMultiPartFile(RESOURCE_JAR_UPLOAD_VALID_PMML);
+		String jsonTxt5 = prepareJsonString(RESOURCE_JSON_MANIFEST_VALID_PMML);
+		result = mockMvc.perform
+				(
+						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods")
+								.file(fstmp4)
+								.param("methodMetadata",jsonTxt5)
+								.contentType(MediaType.MULTIPART_FORM_DATA)
+								.accept(MediaType.APPLICATION_JSON)
+				)
+				.andExpect(status().isOk())
+				.andReturn();
+		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
+
+		// Test with incorrect metadata (PMML and security key)
+		MockMultipartFile fstmp5 = prepareMultiPartFile(RESOURCE_JAR_UPLOAD_INVALID_PMML);
+		String jsonTxt6 = prepareJsonString(RESOURCE_JSON_MANIFEST_INVALID_PMML);
+		result = mockMvc.perform
+				(
+						MockMvcRequestBuilders.fileUpload("/AnalyticsMethods")
+								.file(fstmp5)
+								.param("methodMetadata",jsonTxt6)
+								.contentType(MediaType.MULTIPART_FORM_DATA)
+								.accept(MediaType.APPLICATION_JSON)
+				)
+				.andExpect(status().isBadRequest())
+				.andReturn();
+		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
 	}
 
 
@@ -295,7 +332,7 @@ public class AnalyticsMethodsApplicationTests {
 				.andReturn();
 		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
 
-		// TODO Test with incorrect metadata (PMML and security key)
+
 	}
 
 	@Test

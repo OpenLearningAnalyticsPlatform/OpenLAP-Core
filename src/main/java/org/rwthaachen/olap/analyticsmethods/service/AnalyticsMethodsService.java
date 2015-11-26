@@ -138,7 +138,7 @@ public class AnalyticsMethodsService {
      *
      * @param methodMetadata
      * @param id
-     *@param jarBundle  @return
+     * @param jarBundle  @return
      */
 
     public AnalyticsMethodMetadata updateAnalyticsMethod(AnalyticsMethodMetadata methodMetadata,
