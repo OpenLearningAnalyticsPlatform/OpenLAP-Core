@@ -1,4 +1,4 @@
-package org.rwthaachen.olap.analyticsmethods.controller;
+package org.rwthaachen.olap.common.controller;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -6,7 +6,7 @@ import java.util.HashMap;
 /**
  * Created by lechip on 17/11/15.
  */
-public class AnalyticsMethodsErrorHandlerDTO {
+public class ErrorHandlerDTO {
 
     private static final String TIMESTAMP = "timestamp";
     private static final String STATUS = "status";
@@ -17,8 +17,8 @@ public class AnalyticsMethodsErrorHandlerDTO {
 
     HashMap<String, Object> content = new HashMap<>();
 
-    public AnalyticsMethodsErrorHandlerDTO(int status, String exception,
-                                           String message, String path) {
+    public ErrorHandlerDTO(int status, String exception,
+                           String message, String path) {
         content.put(TIMESTAMP, Instant.now().getEpochSecond());
         content.put(STATUS, status);
         content.put(EXCEPTION, exception);

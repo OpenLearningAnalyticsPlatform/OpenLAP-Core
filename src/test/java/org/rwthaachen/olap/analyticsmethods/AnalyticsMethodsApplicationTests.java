@@ -5,6 +5,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
 import org.junit.runner.RunWith;
+import org.rwthaachen.olap.OpenLAPCoreApplication;
 import org.rwthaachen.olap.analyticsmethods.controller.AnalyticsMethodsUploadController;
 import org.rwthaachen.olap.analyticsmethods.dataAccess.AnalyticsMethodsRepository;
 import org.slf4j.Logger;
@@ -31,12 +32,11 @@ import java.net.URL;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = AnalyticsMethodsApplication.class)
+@SpringApplicationConfiguration(classes = OpenLAPCoreApplication.class)
 // Necessary for getting the autowired WebApplicationContext
 @WebAppConfiguration
 @ActiveProfiles("development")
@@ -84,7 +84,7 @@ public class AnalyticsMethodsApplicationTests {
 
 
 	private	static final Logger log =
-			LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
+			LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
 	// Won't work Test without the WebAppConfiguration
 	@Autowired
@@ -331,8 +331,6 @@ public class AnalyticsMethodsApplicationTests {
 				.andExpect(jsonPath("$.content.errorMessage").value("Empty jar bundle."))
 				.andReturn();
 		log.info("TEST - upload response content: " + result.getResponse().getContentAsString());
-
-
 	}
 
 	@Test

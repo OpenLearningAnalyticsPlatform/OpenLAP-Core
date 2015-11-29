@@ -1,18 +1,17 @@
-package org.rwthaachen.olap.analyticsmethods;
+package org.rwthaachen.olap;
 
-import org.rwthaachen.olap.analyticsmethods.service.DataBaseLoader;
+import org.rwthaachen.olap.common.DataBaseLoader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootApplication
-public class AnalyticsMethodsApplication {
+public class OpenLAPCoreApplication {
 
     @Autowired(required = false)
     DataBaseLoader databaseLoader;
 
     public static void main(String[] args) {
-        SpringApplication.run(AnalyticsMethodsApplication.class, args);
+        SpringApplication.run(OpenLAPCoreApplication.class, args);
     }
 }

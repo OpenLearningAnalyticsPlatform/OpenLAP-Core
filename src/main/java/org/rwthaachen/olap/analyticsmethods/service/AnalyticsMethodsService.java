@@ -4,8 +4,7 @@ import OLAPDataSet.DataSetConfigurationValidationResult;
 import OLAPDataSet.OLAPColumnConfigurationData;
 import OLAPDataSet.OLAPPortConfiguration;
 import core.AnalyticsMethod;
-import org.h2.jdbc.JdbcSQLException;
-import org.rwthaachen.olap.analyticsmethods.AnalyticsMethodsApplication;
+import org.rwthaachen.olap.OpenLAPCoreApplication;
 import org.rwthaachen.olap.analyticsmethods.dataAccess.AnalyticsMethodsRepository;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodLoaderException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException;
@@ -18,20 +17,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
 import java.util.List;
 
 /**
- * This service handles the "business logic" of the macro component. It also works as a facade for other macro components
- * that happen to be running on the same server, i.e. the Analyics Engine.
+ * This service handles the "business logic" of the macro component. It also works as a facade for other
+ * macro components that happen to be running on the same server, i.e. the Analytics Engine and Analytics Modules
  */
 
 @Service
@@ -53,7 +48,7 @@ public class AnalyticsMethodsService {
     AnalyticsMethodsUploadValidator validator;
 
     private	static	final Logger log =
-            LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
+            LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     /**
      *
@@ -61,6 +56,7 @@ public class AnalyticsMethodsService {
      */
     public List<AnalyticsMethodMetadata> viewAllAnalyticsMethods() {
         ArrayList<AnalyticsMethodMetadata> result = new ArrayList<AnalyticsMethodMetadata>();
+        // (A ::B ) denotes A consumer execute B with the iterator given.
         analyticsMethodsRepository.findAll().forEach(result :: add);
         return result;
     }

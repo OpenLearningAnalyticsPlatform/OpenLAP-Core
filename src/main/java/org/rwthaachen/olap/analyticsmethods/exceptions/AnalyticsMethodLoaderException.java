@@ -1,6 +1,6 @@
 package org.rwthaachen.olap.analyticsmethods.exceptions;
 
-import org.rwthaachen.olap.analyticsmethods.AnalyticsMethodsApplication;
+import org.rwthaachen.olap.OpenLAPCoreApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 public class AnalyticsMethodLoaderException extends RuntimeException {
 
     private	static	final Logger log =
-            LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
+            LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     public AnalyticsMethodLoaderException(String message) {
         super(message);

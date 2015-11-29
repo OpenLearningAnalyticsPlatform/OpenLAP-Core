@@ -1,0 +1,16 @@
+{
+  "mapping" : [
+    {
+      "outputPort" : {
+        "type" : "INTEGER",
+        "id" : "outputColumn1",
+        "required" : false
+      },
+      "inputPort" : {
+        "type" : "INTEGER",
+        "id" : "visualizerInputColumn1",
+        "required" : true
+      }
+    }
+  ]
+}

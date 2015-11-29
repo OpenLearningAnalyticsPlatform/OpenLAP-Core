@@ -1,9 +1,8 @@
 package org.rwthaachen.olap.analyticsmethods.service;
 
 import core.AnalyticsMethod;
-import org.rwthaachen.olap.analyticsmethods.AnalyticsMethodsApplication;
+import org.rwthaachen.olap.OpenLAPCoreApplication;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodLoaderException;
-import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodUploadValidationException;
 
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.slf4j.Logger;
@@ -11,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.util.regex.Pattern;
 
 /**
@@ -26,7 +24,7 @@ public class AnalyticsMethodsUploadValidator {
     private String pmmlXsdUrl;
 
     protected static final Logger log =
-            LoggerFactory.getLogger(AnalyticsMethodsApplication.class);
+            LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     public AnalyticsMethodsValidationInformation validatemethod
             (AnalyticsMethodMetadata methodMetadata, String analyticsMethodsJarsFolder) {

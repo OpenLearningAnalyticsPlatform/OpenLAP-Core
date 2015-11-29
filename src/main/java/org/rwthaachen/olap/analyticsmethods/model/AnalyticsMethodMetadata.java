@@ -5,10 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.net.URL;
 
 /**
@@ -16,10 +13,12 @@ import java.net.URL;
  */
 
 @Entity
+@Table(name="AnalyticsMethodMetadata")
 public class AnalyticsMethodMetadata implements Cloneable{
 
     @Id
     @GeneratedValue
+    @Column(name = "METHODMETADATA_ID")
     String id;
     @Column(unique=true, nullable=false)
     String name;
@@ -35,7 +34,6 @@ public class AnalyticsMethodMetadata implements Cloneable{
     String filename;
 
     public AnalyticsMethodMetadata() {
-        this.id = "";
         this.name = null;
         this.creator = "";
         this.description = "";

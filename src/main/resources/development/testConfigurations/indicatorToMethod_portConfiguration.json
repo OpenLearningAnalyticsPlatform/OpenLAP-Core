@@ -1,0 +1,16 @@
+{
+  "mapping" : [
+    {
+      "outputPort" : {
+        "type" : "STRING",
+        "id" : "incomingColumn",
+        "required" : false
+      },
+      "inputPort" : {
+        "type" : "STRING",
+        "id" : "inputColumn1",
+        "required" : true
+      }
+    }
+  ]
+}
