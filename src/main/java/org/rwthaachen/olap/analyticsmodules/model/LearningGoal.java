@@ -140,4 +140,11 @@ public class LearningGoal {
         result = 31 * result + (isActive() ? 1 : 0);
         return result;
     }
+
+    public void updateWithLearningGoal(LearningGoal learningGoal) {
+        this.setAuthor(learningGoal.getAuthor());
+        this.setDescription(learningGoal.getDescription());
+        this.setName(learningGoal.getName());
+        this.setActive(learningGoal.isActive);
+    }
 }

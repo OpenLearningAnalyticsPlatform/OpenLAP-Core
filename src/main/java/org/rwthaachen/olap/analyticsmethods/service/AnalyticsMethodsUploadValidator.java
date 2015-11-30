@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.regex.Pattern;
 
 /**
- * Created by lechip on 05/11/15.
+ * TODO
  */
 @Service
 public class AnalyticsMethodsUploadValidator {
@@ -26,6 +26,12 @@ public class AnalyticsMethodsUploadValidator {
     protected static final Logger log =
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
+    /**
+     * TODO
+     * @param methodMetadata
+     * @param analyticsMethodsJarsFolder
+     * @return
+     */
     public AnalyticsMethodsValidationInformation validatemethod
             (AnalyticsMethodMetadata methodMetadata, String analyticsMethodsJarsFolder) {
 
@@ -70,6 +76,11 @@ public class AnalyticsMethodsUploadValidator {
         return validationInformation;
     }
 
+    /**
+     * TODO
+     * @param input
+     * @return
+     */
     private boolean validateFilename(String input){
         final Pattern pattern = Pattern.compile("^[a-zA-Z0-9]*$");
         if (!pattern.matcher(input).matches()) return false;

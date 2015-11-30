@@ -11,7 +11,7 @@ import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadReques
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsUploadErrorException;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.rwthaachen.olap.analyticsmethods.service.AnalyticsMethodsService;
-import org.rwthaachen.olap.common.controller.ErrorHandlerDTO;
+import org.rwthaachen.olap.common.controller.GenericResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -32,6 +32,10 @@ public class AnalyticsMethodsUploadController {
     @Autowired
     AnalyticsMethodsService analyticsMethodsService;
 
+    /**
+     * TODO
+     * @return
+     */
     @RequestMapping(
             value = "/AnalyticsMethods",
             method = RequestMethod.GET
@@ -42,6 +46,11 @@ public class AnalyticsMethodsUploadController {
         return analyticsMethodsService.viewAllAnalyticsMethods();
     }
 
+    /**
+     * TODO
+     * @param id
+     * @return
+     */
     @RequestMapping
             (
                     value = "/AnalyticsMethods/{id}",
@@ -52,6 +61,12 @@ public class AnalyticsMethodsUploadController {
         return analyticsMethodsService.viewAnalyticsMethod(id);
     }
 
+    /**
+     * TODO
+     * @param jarBundle
+     * @param methodMetadataText
+     * @return
+     */
     @RequestMapping
             (
                     value = "/AnalyticsMethods",
@@ -79,7 +94,13 @@ public class AnalyticsMethodsUploadController {
         }
     }
 
-
+    /**
+     * TODO
+     * @param methodMetadataText
+     * @param jarBundle
+     * @param id
+     * @return
+     */
     @RequestMapping
             (
                     value = "/AnalyticsMethods/{id}",
@@ -108,6 +129,12 @@ public class AnalyticsMethodsUploadController {
         }
     }
 
+    /**
+     * TODO
+     * @param configurationMapping
+     * @param id
+     * @return
+     */
     @RequestMapping
             (
                     value = "/AnalyticsMethods/{id}/validateConfiguration",
@@ -122,7 +149,11 @@ public class AnalyticsMethodsUploadController {
         return analyticsMethodsService.validateConfiguration(id, configurationMapping);
     }
 
-
+    /**
+     * TODO
+     * @param id
+     * @return
+     */
     @RequestMapping
             (
                     value = "AnalyticsMethods/{id}/getInputPorts",
@@ -137,6 +168,11 @@ public class AnalyticsMethodsUploadController {
     }
 
 
+    /**
+     * TODO
+     * @param id
+     * @return
+     */
     @RequestMapping
             (
                     value = "AnalyticsMethods/{id}/getOutputPorts",
@@ -150,14 +186,29 @@ public class AnalyticsMethodsUploadController {
         return analyticsMethodsService.GetOutputPortsForMethod(id);
     }
 
+    /**
+     * HTTP endpoint handler method for deleting AnalyticsMethod
+     * @param id id of the AnalyticsMethod to be deleted
+     * @return GenericResponseDTO with deletion confirmation
+     */
+    @RequestMapping(
+            value = "/AnalyticsMethods/{id}",
+            method = RequestMethod.DELETE
+    )
+    public @ResponseBody GenericResponseDTO deleteAnalyticsMethod(@PathVariable String id){
+        analyticsMethodsService.deleteAnalyticsMethod(id);
+        return new GenericResponseDTO(HttpStatus.OK.value(),
+                "Analytics Method with id {" + id + "} deleted");
+    }
+
     //region ExceptionHandlers
     @ExceptionHandler(AnalyticsMethodNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public @ResponseBody
-    ErrorHandlerDTO handleMethodNotFoundException(AnalyticsMethodNotFoundException e,
-                                                  HttpServletRequest request)
+    GenericResponseDTO handleMethodNotFoundException(AnalyticsMethodNotFoundException e,
+                                                     HttpServletRequest request)
     {
-        ErrorHandlerDTO errorObject = new ErrorHandlerDTO(
+        GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.NOT_FOUND.value(),
                 e.getClass().getName(),
                 e.getMessage(),
@@ -170,10 +221,10 @@ public class AnalyticsMethodsUploadController {
     @ExceptionHandler({AnalyticsMethodsUploadErrorException.class, IOException.class})
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public @ResponseBody
-    ErrorHandlerDTO handleMethodsUploadErrorException(Exception e,
-                                                      HttpServletRequest request)
+    GenericResponseDTO handleMethodsUploadErrorException(Exception e,
+                                                         HttpServletRequest request)
     {
-        ErrorHandlerDTO errorObject = new ErrorHandlerDTO(
+        GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 e.getClass().getName(),
                 e.getMessage(),
@@ -186,10 +237,10 @@ public class AnalyticsMethodsUploadController {
     @ExceptionHandler(AnalyticsMethodsBadRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public @ResponseBody
-    ErrorHandlerDTO handleMethodsUploadBadRequestException(AnalyticsMethodsBadRequestException e,
-                                                           HttpServletRequest request)
+    GenericResponseDTO handleMethodsUploadBadRequestException(AnalyticsMethodsBadRequestException e,
+                                                              HttpServletRequest request)
     {
-        ErrorHandlerDTO errorObject = new ErrorHandlerDTO(
+        GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.BAD_REQUEST.value(),
                 e.getClass().getName(),
                 e.getMessage(),
@@ -202,10 +253,10 @@ public class AnalyticsMethodsUploadController {
     @ExceptionHandler(AnalyticsMethodLoaderException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public @ResponseBody
-    ErrorHandlerDTO handleMethodsUploadBadRequestException(AnalyticsMethodLoaderException e,
-                                                           HttpServletRequest request)
+    GenericResponseDTO handleMethodsUploadBadRequestException(AnalyticsMethodLoaderException e,
+                                                              HttpServletRequest request)
     {
-        ErrorHandlerDTO errorObject = new ErrorHandlerDTO(
+        GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 e.getClass().getName(),
                 e.getMessage(),

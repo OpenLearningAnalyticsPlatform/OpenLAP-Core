@@ -160,4 +160,12 @@ public class Triad {
         result = 31 * result + (getAnalyticsMethodToVisualizationMapping() != null ? getAnalyticsMethodToVisualizationMapping().hashCode() : 0);
         return result;
     }
+
+    public void updateWithTriad(Triad triad) {
+        this.setAnalyticsMethodReference(triad.getAnalyticsMethodReference());
+        this.setIndicatorReference(triad.getIndicatorReference());
+        this.setVisualizationReference(triad.getVisualizationReference());
+        this.setAnalyticsMethodToVisualizationMapping(triad.getAnalyticsMethodToVisualizationMapping());
+        this.setIndicatorToAnalyticsMethodMapping(triad.getIndicatorToAnalyticsMethodMapping());
+    }
 }

@@ -9,7 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 /**
- * Created by lechip on 15/11/15.
+ * File handler for simple File and directory creation, saving and deletion
  */
 public class FileHandler {
 
@@ -19,6 +19,14 @@ public class FileHandler {
         this.log = log;
     }
 
+    /**
+     * TODO
+     * @param fileToSave
+     * @param savingFolder
+     * @param fileName
+     * @throws IOException
+     * @throws SecurityException
+     */
     public void saveFile(MultipartFile fileToSave, String savingFolder, String fileName) throws IOException,
             SecurityException {
         // Create folder if it does not exists
@@ -36,17 +44,33 @@ public class FileHandler {
 
         stream.write(bytes);
         stream.close();
+        log.info("Saved file: " + savingFolder + fileName);
     }
 
+    /**
+     * TODO
+     * @param deletionFolder
+     * @param fileName
+     */
     public void deleteFile(String deletionFolder, String fileName){
         File fileToDelete= new File(deletionFolder + fileName);
         fileToDelete.delete();
+        log.info("Deleted file: " + deletionFolder + fileName);
     }
 
+    /**
+     * TODO
+     * @param deletionFolder
+     */
     public void deleteFolder(String deletionFolder){
         deleteFile(deletionFolder,"");
     }
 
+    /**
+     * TODO
+     * @param savingFolder
+     * @throws SecurityException
+     */
     private void createFolderIfNotExisting(String savingFolder) throws SecurityException {
         File theDir = new File(savingFolder);
         // if the directory does not exist, create it

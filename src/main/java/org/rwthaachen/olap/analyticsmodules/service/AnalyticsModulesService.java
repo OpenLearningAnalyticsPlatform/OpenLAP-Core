@@ -3,7 +3,7 @@ package org.rwthaachen.olap.analyticsmodules.service;
 import org.rwthaachen.olap.OpenLAPCoreApplication;
 import org.rwthaachen.olap.analyticsmethods.dataAccess.AnalyticsMethodsRepository;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException;
-import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
+import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.rwthaachen.olap.analyticsmodules.dataAccess.LearningGoalsRepository;
 import org.rwthaachen.olap.analyticsmodules.dataAccess.TriadsRepository;
 import org.rwthaachen.olap.analyticsmodules.exceptions.AnalyticsModulesBadRequestException;
@@ -96,6 +96,35 @@ public class AnalyticsModulesService {
         triadsRepository.findAll().forEach(result :: add);
         return result;
     }
+
+    /**
+     * Delete the specified Triad
+     * @param triadId id of the Triad to be deleted
+     */
+    public void deleteTriad(String triadId) {
+        if(!triadsRepository.exists(triadId)){
+            throw new TriadNotFoundException("Triad with id = {"
+                    + triadId + "} not found.");
+        }
+        triadsRepository.delete(triadId);
+    }
+
+    /**
+     * Update the specified Triad with the specified the data sent
+     * @param triad Data of the Triad to be updated.
+     * @param id of the Triad to be updated
+     * @return updated Triad
+     */
+    public Triad updateTriad(Triad triad, String id) {
+        Triad responseTriad = triadsRepository.findOne(id);
+        if(responseTriad == null){
+            throw new AnalyticsModulesBadRequestException("Learning Goal with id = {"
+                    + id + "} not found.");
+        }
+        responseTriad.updateWithTriad(triad);
+        return triadsRepository.save(responseTriad);
+    }
+
     //endregion
 
     //region LearningGoals
@@ -153,10 +182,71 @@ public class AnalyticsModulesService {
      * @param id of the LearningGoal to be switched
      * @return the saved LearningGoal with the set active status
      */
-    public LearningGoal authorizeLearningGoal(String id, boolean status) {
+    public LearningGoal setLearningGoalActive(String id, boolean status) {
         LearningGoal learningGoal = getLearningGoalById(id);
         learningGoal.setActive(status);
-        return saveLearningGoal(learningGoal);
+        return updateLearningGoal(learningGoal, id);
+    }
+
+    /**
+     * Attach an AnalyticsMethodMetadata to a LearningGoal
+     * @param learningGoalId the id of the LearningGoal to attach the AnalyticsMethodMetadata to
+     * @param analyticsMethodMetadata the AnalyticsMethodMetadata to be attached
+     * @return the new LearningGoal with the attached AnalyticsMethodMetadata
+     */
+    public LearningGoal addAnalyticsMethodToLearningGoal(String learningGoalId,
+                                                         AnalyticsMethodMetadata analyticsMethodMetadata) {
+        //Check that LearningGoal exists
+        //Check that AnalyticsMethod exists
+        LearningGoal responseLearningGoal = learningGoalRepository.findOne(learningGoalId);
+        AnalyticsMethodMetadata requestedAnalytisMethod =
+                analyticsMethodsRepository.findOne(analyticsMethodMetadata.getId());
+        if(responseLearningGoal == null){
+            throw new AnalyticsModulesBadRequestException("Learning Goal with id = {"
+                    + learningGoalId + "} not found.");
+        }
+        if ( requestedAnalytisMethod == null){
+            throw new AnalyticsModulesBadRequestException("Analytics Method with id = {"
+                    + analyticsMethodMetadata.getId() + "} not found.");
+        }
+        if (!responseLearningGoal.isActive()){
+            throw new AnalyticsModulesBadRequestException("Learning Goal with id = {"
+                    + analyticsMethodMetadata.getId() + "} must be active to attach Analytics Methods to it.");
+        }
+        //Attach analyticsMethodMetadata if it does not exist in the LearningGoal
+        responseLearningGoal.getAnalyticsMethods().add(requestedAnalytisMethod);
+
+        //Return the LearningGoal with the attached
+        return learningGoalRepository.save(responseLearningGoal);
+    }
+
+    /**
+     * Update the specified LearningGoal with the specified the data sent
+     * @param learningGoal Data of the LearningGoal to be updated. Note that the isActive, id and the AnalyticsMethods
+     *                     will not be updated using this method.
+     * @param id of the LearningGoal to be updated
+     * @return updated LearningGoal
+     */
+    public LearningGoal updateLearningGoal(LearningGoal learningGoal, String id) {
+        LearningGoal responseLearningGoal = learningGoalRepository.findOne(id);
+        if(responseLearningGoal == null){
+            throw new AnalyticsModulesBadRequestException("Learning Goal with id = {"
+                    + id + "} not found.");
+        }
+        responseLearningGoal.updateWithLearningGoal(learningGoal);
+        return learningGoalRepository.save(responseLearningGoal);
+    }
+
+    /**
+     * Delete the specified LearningGoal
+     * @param learningGoalId id of the LearningGoal to be deleted
+     */
+    public void deleteLearningGoal(String learningGoalId) {
+        if(!learningGoalRepository.exists(learningGoalId)){
+            throw new LearningGoalNotFoundException("Learning Goal with id = {"
+                    + learningGoalId + "} not found.");
+        }
+        learningGoalRepository.delete(learningGoalId);
     }
 
     //endregion

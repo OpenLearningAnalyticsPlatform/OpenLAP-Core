@@ -15,10 +15,17 @@ import java.io.InputStream;
 import java.net.URL;
 
 /**
- * Created by lechip on 24/11/15.
+ * TODO
  */
 public class SimpleXmlSchemaValidator {
 
+    /**
+     * TODO
+     * @param validationInformation
+     * @param streamXmlToCheck
+     * @param xsdUrl
+     * @return
+     */
     public static boolean validateXML(AnalyticsMethodsValidationInformation validationInformation,
                                       InputStream streamXmlToCheck, String xsdUrl)
     {

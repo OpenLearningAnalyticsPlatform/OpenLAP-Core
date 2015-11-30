@@ -11,6 +11,7 @@ import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodNotFoundEx
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsUploadErrorException;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
+import org.rwthaachen.olap.analyticsmodules.exceptions.AnalyticsModulesBadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +52,7 @@ public class AnalyticsMethodsService {
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     /**
-     *
+     * TODO
      * @return
      */
     public List<AnalyticsMethodMetadata> viewAllAnalyticsMethods() {
@@ -62,7 +63,7 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     *
+     * TODO
      * @param id
      * @return
      * @throws AnalyticsMethodNotFoundException
@@ -81,7 +82,7 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     *
+     * TODO
      * @param methodMetadata
      * @param jarBundle
      * @return
@@ -131,12 +132,12 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     *
+     * TODO
      * @param methodMetadata
      * @param id
-     * @param jarBundle  @return
+     * @param jarBundle
+     * @return
      */
-
     public AnalyticsMethodMetadata updateAnalyticsMethod(AnalyticsMethodMetadata methodMetadata,
                                                          String id, MultipartFile jarBundle) {
         AnalyticsMethodsValidationInformation validationInformation;
@@ -201,10 +202,11 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     *
+     * TODO
      * @param analyticsMethodId
      * @param configuration
      * @return
+     * @throws AnalyticsMethodLoaderException
      */
     public DataSetConfigurationValidationResult validateConfiguration(
             String analyticsMethodId, OLAPPortConfiguration configuration) throws AnalyticsMethodLoaderException
@@ -216,7 +218,7 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     *
+     * TODO
      * @param analyticsMethodId
      * @return
      * @throws AnalyticsMethodLoaderException
@@ -242,7 +244,7 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     *
+     * TODO
      * @param id
      * @return
      */
@@ -251,7 +253,7 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     *
+     * TODO
      * @param id
      * @return
      */
@@ -283,5 +285,27 @@ public class AnalyticsMethodsService {
             default:
                 throw new AnalyticsMethodsBadRequestException("Only can return Inputs or Outputs");
         }
+    }
+
+    /**
+     * Delete the specified AnalyticsMethod
+     * @param id id of the AnalyticsMethod to be deleted
+     */
+    public void deleteAnalyticsMethod(String id) {
+
+        FileHandler fileHandler = new FileHandler(log);
+        AnalyticsMethodMetadata metadata = analyticsMethodsRepository.findOne(id);
+
+        if(metadata == null || id == null || id.isEmpty()){
+            throw new AnalyticsMethodNotFoundException("Analytics Method with id = {"
+                    + id + "} not found.");
+        }
+
+        // Delete Files
+        fileHandler.deleteFile(analyticsMethodsJarsFolder, metadata.getFilename());
+
+        // Delete from database
+        analyticsMethodsRepository.delete(metadata);
+
     }
 }

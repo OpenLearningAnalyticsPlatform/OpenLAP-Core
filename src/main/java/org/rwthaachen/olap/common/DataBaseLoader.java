@@ -6,6 +6,7 @@ import org.rwthaachen.olap.OpenLAPCoreApplication;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.rwthaachen.olap.analyticsmethods.service.AnalyticsMethodsService;
 import org.rwthaachen.olap.analyticsmodules.model.IndicatorReference;
+import org.rwthaachen.olap.analyticsmodules.model.LearningGoal;
 import org.rwthaachen.olap.analyticsmodules.model.Triad;
 import org.rwthaachen.olap.analyticsmodules.model.VisualizerReference;
 import org.rwthaachen.olap.analyticsmodules.service.AnalyticsModulesService;
@@ -46,6 +47,9 @@ public class DataBaseLoader {
 
     ObjectMapper mapper;
 
+    /**
+     * TODO
+     */
     @PostConstruct
     private void initDatabase()
     {
@@ -59,6 +63,10 @@ public class DataBaseLoader {
 
     }
 
+    /**
+     * TODO
+     * @return
+     */
     private AnalyticsMethodMetadata loadAnalyticsMethod() {
         AnalyticsMethodMetadata result = null;
 
@@ -91,13 +99,17 @@ public class DataBaseLoader {
         }
     }
 
+    /**
+     * TODO
+     * @param preloadedMetadata
+     * @return
+     */
     private Triad loadTriad(AnalyticsMethodMetadata preloadedMetadata) {
         // Create a Triad
         // String indicator = "indicator1";
         IndicatorReference indicator = new IndicatorReference(1, "indicator1", "The first indicator ever");
         //String visualization = "visualization1";
         VisualizerReference visualization = new VisualizerReference(1, "visualization1", "Something made by Bassim");
-
 
         // Save the Triad using the service
         try
@@ -122,6 +134,30 @@ public class DataBaseLoader {
             return null;
         }
 
+    }
+
+    /**
+     * TODO
+     * @param preloadedMetadata
+     */
+    private void loadLearningGoal(AnalyticsMethodMetadata preloadedMetadata) {
+        //Create a LearningGoal
+        LearningGoal learningGoal = new LearningGoal("LearningGoal1", "Testing Learning Goal", "lechip", false);
+        try{
+            learningGoal = analyticsModulesService.saveLearningGoal(learningGoal);
+            learningGoal = analyticsModulesService.setLearningGoalActive(learningGoal.getId(),true);
+            learningGoal = analyticsModulesService.addAnalyticsMethodToLearningGoal(learningGoal.getId(),
+                    preloadedMetadata);
+            // To test that does not save twice
+            learningGoal = analyticsModulesService.addAnalyticsMethodToLearningGoal(learningGoal.getId(),
+                    preloadedMetadata);
+            log.info("Loaded LearningGoal: " + learningGoal.toString());
+        }
+        catch (Exception e)
+        {
+            log.info("DataBaseLoader PostConstruct Failed loading LearningGoal");
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -179,9 +215,6 @@ public class DataBaseLoader {
             default:
                 return "";
         }
-    }
-
-    private void loadLearningGoal(AnalyticsMethodMetadata preloadedMetadata) {
     }
 
     private enum JsonGeneratorIndex{

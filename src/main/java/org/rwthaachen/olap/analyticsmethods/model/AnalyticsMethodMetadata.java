@@ -135,4 +135,33 @@ public class AnalyticsMethodMetadata implements Cloneable{
         this.setImplementingClass(updatedMetadata.getImplementingClass());
         this.setFilename(updatedMetadata.getFilename());
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AnalyticsMethodMetadata)) return false;
+
+        AnalyticsMethodMetadata that = (AnalyticsMethodMetadata) o;
+
+        if (!getId().equals(that.getId())) return false;
+        if (!getName().equals(that.getName())) return false;
+        if (!getCreator().equals(that.getCreator())) return false;
+        if (!getDescription().equals(that.getDescription())) return false;
+        if (!getImplementingClass().equals(that.getImplementingClass())) return false;
+        if (!getBinariesLocation().equals(that.getBinariesLocation())) return false;
+        return getFilename().equals(that.getFilename());
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getId().hashCode();
+        result = 31 * result + getName().hashCode();
+        result = 31 * result + getCreator().hashCode();
+        result = 31 * result + getDescription().hashCode();
+        result = 31 * result + getImplementingClass().hashCode();
+        result = 31 * result + getBinariesLocation().hashCode();
+        result = 31 * result + getFilename().hashCode();
+        return result;
+    }
 }

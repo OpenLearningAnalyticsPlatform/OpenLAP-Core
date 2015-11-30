@@ -10,13 +10,17 @@ import org.xeustechnologies.jcl.proxy.CglibProxyProvider;
 import org.xeustechnologies.jcl.proxy.ProxyProviderFactory;
 
 /**
- * Created by lechip on 15/11/15.
+ * TODO
  */
 public class AnalyticsMethodsClassPathLoader {
 
     private JarClassLoader jcl;
     private JclObjectFactory factory;
 
+    /**
+     * TODO
+     * @param analyticsMethodsJarsFolder
+     */
     public AnalyticsMethodsClassPathLoader(String analyticsMethodsJarsFolder) {
 
         //JCL object for loading jars
@@ -36,6 +40,12 @@ public class AnalyticsMethodsClassPathLoader {
         factory = JclObjectFactory.getInstance(true);
     }
 
+    /**
+     * TODO
+     * @param implementingClass
+     * @return
+     * @throws AnalyticsMethodLoaderException
+     */
     public AnalyticsMethod loadClass(String implementingClass) throws AnalyticsMethodLoaderException {
         //Create object of loaded class
         AnalyticsMethod abstractMethod;
