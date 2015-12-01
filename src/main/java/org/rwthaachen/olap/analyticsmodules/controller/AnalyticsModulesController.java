@@ -82,8 +82,8 @@ public class AnalyticsModulesController {
             value = "/AnalyticsModules/Triads/{id}",
             method = RequestMethod.PUT
     )
-    public @ResponseBody Triad updateLearningGoal(@RequestBody Triad triad,
-                                                         @PathVariable String id){
+    public @ResponseBody Triad updateTriad(@RequestBody Triad triad,
+                                           @PathVariable String id){
         return modulesService.updateTriad(triad, id);
     }
 

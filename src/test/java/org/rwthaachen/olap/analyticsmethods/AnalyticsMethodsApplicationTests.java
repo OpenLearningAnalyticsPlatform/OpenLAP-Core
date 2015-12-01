@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -398,6 +399,25 @@ public class AnalyticsMethodsApplicationTests {
 		// Test with wrong method id
 		result = mockMvc.perform(get("/AnalyticsMethods/worngId/getOutputPorts"))
 				.andExpect(status().isNotFound())
+				.andReturn();
+		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
+	}
+
+	@Test
+	public void controllerDeleteAnalyticsMethodTest() throws Exception{
+		MvcResult result;
+
+		// Test with wrong method id
+		result = mockMvc.perform(delete("/AnalyticsMethods/worngId"))
+				.andExpect(status().isNotFound())
+				.andReturn();
+		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
+
+		// Test with normal request
+		result = mockMvc.perform(delete("/AnalyticsMethods/"+testingMethodId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$..status").value(200))
+				.andExpect(jsonPath("$..message").value("Analytics Method with id {" + testingMethodId + "} deleted"))
 				.andReturn();
 		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
 	}
