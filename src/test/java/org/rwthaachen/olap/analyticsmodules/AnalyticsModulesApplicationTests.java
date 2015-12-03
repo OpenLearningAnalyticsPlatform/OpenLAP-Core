@@ -13,10 +13,10 @@ import org.rwthaachen.olap.OpenLAPCoreApplication;
 import org.rwthaachen.olap.analyticsmethods.dataAccess.AnalyticsMethodsRepository;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.rwthaachen.olap.analyticsmodules.controller.AnalyticsModulesController;
-import org.rwthaachen.olap.analyticsmodules.dataAccess.LearningGoalsRepository;
+import org.rwthaachen.olap.analyticsmodules.dataAccess.AnalyticsGoalRepository;
 import org.rwthaachen.olap.analyticsmodules.dataAccess.TriadsRepository;
+import org.rwthaachen.olap.analyticsmodules.model.AnalyticsGoal;
 import org.rwthaachen.olap.analyticsmodules.model.IndicatorReference;
-import org.rwthaachen.olap.analyticsmodules.model.LearningGoal;
 import org.rwthaachen.olap.analyticsmodules.model.Triad;
 import org.rwthaachen.olap.analyticsmodules.model.VisualizerReference;
 import org.slf4j.Logger;
@@ -74,7 +74,7 @@ public class AnalyticsModulesApplicationTests {
     private AnalyticsModulesController controller;
 
     @Autowired
-    private LearningGoalsRepository learningGoalsRepository;
+    private AnalyticsGoalRepository analyticsGoalRepository;
 
     @Autowired
     private TriadsRepository triadsRepository;
@@ -86,7 +86,7 @@ public class AnalyticsModulesApplicationTests {
 
     @Value("${analyticsMethodsJarsFolder}")
     String analyticsMethodsJarsFolder;
-    String testingLearningGoalId;
+    String testingAnalyticsGoalId;
     String testingTriadId;
     String testingMethodId;
 
@@ -95,7 +95,7 @@ public class AnalyticsModulesApplicationTests {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
         //Create a Method to test
         saveTestingMethod();
-        saveTestingLearningGoal();
+        saveTestingAnalyticsGoal();
         saveTestingTriad();
     }
 
@@ -105,7 +105,7 @@ public class AnalyticsModulesApplicationTests {
         deleteFolder(analyticsMethodsJarsFolder);
         analyticsMethodsRepository.deleteAll();
         triadsRepository.deleteAll();
-        learningGoalsRepository.deleteAll();
+        analyticsGoalRepository.deleteAll();
     }
 
     //region Triads
@@ -150,75 +150,175 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void getTriadByIdTest(){
-        //TODO Test with get a valid Triad
-        //TODO Test with get an invalid Triad
+    public void getTriadByIdTest() throws Exception{
+        MvcResult result;
+
+        //Test with get a valid Triad
+        result = mockMvc.perform(get("/AnalyticsModules/Triads/"+testingTriadId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testingTriadId))
+                .andExpect(jsonPath("$.indicatorReference").exists())
+                .andExpect(jsonPath("$.analyticsMethodReference").exists())
+                .andExpect(jsonPath("$.visualizationReference").exists())
+                .andExpect(jsonPath("$.indicatorToAnalyticsMethodMapping").exists())
+                .andExpect(jsonPath("$.analyticsMethodToVisualizationMapping").exists())
+                .andReturn();
+        log.info("TEST - Triads response content: " + result.getResponse().getContentAsString());
+
+        //Test with get an invalid Triad
+        result = mockMvc.perform(get("/AnalyticsModules/Triads/wrongId"))
+                .andExpect(status().isNotFound())
+                .andReturn();
+        log.info("TEST - Triads response content: " + result.getResponse().getContentAsString());
     }
 
     @Test
-    public void getAllTriadsTest(){
-        //TODO Test getting all Triads
+    public void getAllTriadsTest() throws Exception{
+        MvcResult result;
+        // Test getting all Triads
+        result = mockMvc.perform(get("/AnalyticsModules/Triads/"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].indicatorReference").exists())
+                .andExpect(jsonPath("$[0].analyticsMethodReference").exists())
+                .andExpect(jsonPath("$[0].visualizationReference").exists())
+                .andExpect(jsonPath("$[0].indicatorToAnalyticsMethodMapping").exists())
+                .andExpect(jsonPath("$[0].analyticsMethodToVisualizationMapping").exists())
+                .andReturn();
+        log.info("TEST - Triads response content: " + result.getResponse().getContentAsString());
     }
 
     @Test
-    public void updateTriadTest(){
-        //TODO test updating existing Triad
-        //TODO test updating invalid Triad
+    public void updateTriadTest() throws Exception{
+        ObjectMapper mapper = new ObjectMapper();
+        //Get the AnalyticsMethod
+        AnalyticsMethodMetadata analyticsMethodForTesting =  analyticsMethodsRepository.findOne(testingMethodId);
+        analyticsMethodForTesting.setDescription("updated");
+        //Create a Triad
+        OLAPPortConfiguration config1 =
+                mapper.readValue(getJsonString(JsonGeneratorIndex.OLAPCONFIGURATION_INDICATOR_TO_METHOD),
+                        OLAPPortConfiguration.class);
+        OLAPPortConfiguration config2 =
+                mapper.readValue(getJsonString(JsonGeneratorIndex.OLAPCONFIGURATION_METHOD_TO_INDICATOR),
+                        OLAPPortConfiguration.class);
+        Triad triadForTesting = new Triad
+                (
+                        new IndicatorReference(1,"IndicatorInTestUpdate","An indicator"),
+                        analyticsMethodForTesting,
+                        new VisualizerReference(1,"VisualizerInTestUpdate","A Visualization"),
+                        config1,
+                        config2
+                );
+        //Put the Triad as a String
+        String triadAsJsonString = triadForTesting.toString();
+        // Test updating existing Triad
+        MvcResult result = mockMvc.perform
+                (
+                        put("/AnalyticsModules/Triads/" + testingTriadId)
+                                .contentType(MediaType.APPLICATION_JSON).content(triadAsJsonString)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analyticsMethodReference.id").value(testingMethodId))
+                .andExpect(jsonPath("$.analyticsMethodReference.description").value("updated"))
+                .andExpect(jsonPath("$.indicatorReference.id").value(1))
+                .andExpect(jsonPath("$.visualizationReference.id").value(1))
+                .andExpect(jsonPath("$.indicatorToAnalyticsMethodMapping").exists())
+                .andExpect(jsonPath("$.analyticsMethodToVisualizationMapping").exists())
+                .andReturn();
+        log.info("TEST - Triad update: " + result.getResponse().getContentAsString());
+        // Test updating invalid Triad
+        MvcResult result2 = mockMvc.perform
+                (
+                        put("/AnalyticsModules/Triads/" + testingTriadId)
+                                .contentType(MediaType.APPLICATION_JSON).content(analyticsMethodForTesting
+                                .toString())
+                )
+                .andExpect(status().isBadRequest())
+                .andReturn();
+        log.info("TEST - Triad wrong update: " + result2.getResponse().getContentAsString());
     }
 
     @Test
-    public void deleteTriadTest(){
-        //TODO test deleting existing Triad
-        //TODO test deleting invalid Triad
+    public void deleteTriadTest() throws Exception{
+        MvcResult result;
+
+        // Test deleting invalid Triad
+        result = mockMvc.perform(delete("/AnalyticsModules/Triads/worngId"))
+                .andExpect(status().isNotFound())
+                .andReturn();
+        log.info("TEST - Delete wrong Triad response content: " + result.getResponse().getContentAsString());
+
+        // Test deleting existing Triad
+        result = mockMvc.perform(delete("/AnalyticsModules/Triads/"+testingTriadId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$..status").value(200))
+                .andExpect(jsonPath("$..message").value("Triad with id {" + testingTriadId + "} deleted"))
+                .andReturn();
+        log.info("TEST - Delete Triad content: " + result.getResponse().getContentAsString());
+
+
     }
     //endregion
 
-    //region LearningGoals
+    //region AnalyticsGoals
     @Test
-    public void getLearningGoalByIdTest(){
-        //TODO Test getting valid LearningGoal
-        //TODO Test getting invalid LearningGoal
-        //TODO Test getting unapproved LearningGoal
+    public void getAnalyticsGoalByIdTest() throws Exception{
+        //TODO Test getting valid AnalyticsGoal
+        //TODO Test getting invalid AnalyticsGoal
+        //TODO Test getting unapproved AnalyticsGoal
     }
 
     @Test
-    public void saveLearningGoalTest(){
-        //TODO Test creating valid LearningGoal
-        //TODO Test creating invalid LearningGoal
+    public void saveAnalyticsGoalTest() throws Exception{
+        //TODO Test creating valid AnalyticsGoal
+        //TODO Test creating invalid AnalyticsGoal
     }
 
     @Test
-    public void authorizeLearningGoalTest(){
-        //TODO Test approving a valid LearningGoal
-        //TODO Test approving an invalid LearningGoal
+    public void authorizeAnalyticsGoalTest() throws Exception{
+        //TODO Test approving a valid AnalyticsGoal
+        //TODO Test approving an invalid AnalyticsGoal
     }
 
     @Test
-    public void getAllLearningGoalsTest(){
+    public void getAllAnalyticsGoalsTest() throws Exception{
         //TODO Test
     }
 
 
     @Test
-    public void addAnalyticsMethodToLearningGoalTest(){
-        //TODO Test linking existing AnalyticsMethod to existing and approved LearningGoal
-        //TODO Test linking exsiting AnalyticsMethod to exsiting but not approved LearningGoal
-        //TODO Test linking nonexisting AnalyticsMethod to existing but not approved LearningGoal
-        //TODO Test linking existing AnalyticsMethod to nonexisting but not approved LearningGoal
+    public void addAnalyticsMethodToAnalyticsGoalTest() throws Exception{
+        //TODO Test linking existing AnalyticsMethod to existing and approved AnalyticsGoal
+        //TODO Test linking exsiting AnalyticsMethod to exsiting but not approved AnalyticsGoal
+        //TODO Test linking nonexisting AnalyticsMethod to existing but not approved AnalyticsGoal
+        //TODO Test linking existing AnalyticsMethod to nonexisting but not approved AnalyticsGoal
     }
 
     @Test
-    public void updateLearningGoalTest(){
-        //TODO test updating existing LearningGoal
-        //TODO test updating invalid LearningGoal
+    public void updateAnalyticsGoalTest() throws Exception{
+        //TODO test updating existing AnalyticsGoal
+        //TODO test updating invalid AnalyticsGoal
     }
 
     @Test
-    public void deleteLearningGoalTest(){
-        //TODO test deleting existing LearningGoal
-        //TODO test deleting invalid LearningGoal
-    }
+    public void deleteAnalyticsGoalTest() throws Exception{
+        MvcResult result;
 
+        // Test deleting invalid Triad
+        result = mockMvc.perform(delete("/AnalyticsModules/AnalyticsGoals/worngId"))
+                .andExpect(status().isNotFound())
+                .andReturn();
+        log.info("TEST - Delete wrong Goal response content: " + result.getResponse().getContentAsString());
+
+        // Test deleting existing Triad
+        result = mockMvc.perform(delete("/AnalyticsModules/AnalyticsGoals/"+testingTriadId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$..status").value(200))
+                .andExpect(jsonPath("$..message").value("Analytics Goal with id {" + testingTriadId + "} deleted"))
+                .andReturn();
+        log.info("TEST - Delete Goal content: " + result.getResponse().getContentAsString());
+        //TODO test deleting existing AnalyticsGoal
+        //TODO test deleting invalid AnalyticsGoal
+    }
 
     //endregion
 
@@ -255,21 +355,21 @@ public class AnalyticsModulesApplicationTests {
         log.info("TEST - AnalyticsMethod id: " + testingMethodId);
     }
 
-    private void saveTestingLearningGoal() throws Exception{
-        //Create the LearningGoal
-        LearningGoal testLearningGoal = new LearningGoal("Test LearningGoal", "A Learning Goal", "lechip", true);
-        //Put the LearningGoal as a String
-        String learningGoalAsJsonString = testLearningGoal.toString();
+    private void saveTestingAnalyticsGoal() throws Exception{
+        //Create the AnalyticsGoal
+        AnalyticsGoal testAnalyticsGoal = new AnalyticsGoal("Test AnalyticsGoal", "A Analytics Goal", "lechip", true);
+        //Put the AnalyticsGoal as a String
+        String analyticsGoalAsJsonString = testAnalyticsGoal.toString();
         MvcResult result = mockMvc.perform
                 (
-                        post("/AnalyticsModules/LearningGoals/")
-                        .contentType(MediaType.APPLICATION_JSON).content(learningGoalAsJsonString)
+                        post("/AnalyticsModules/AnalyticsGoals/")
+                        .contentType(MediaType.APPLICATION_JSON).content(analyticsGoalAsJsonString)
                 )
                 .andExpect(status().isOk())
                 .andReturn();
-        log.info("TEST - LearningGoal uploaded (is not approved): " + result.getResponse().getContentAsString());
-        testingLearningGoalId = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
-        log.info("TEST - LearningGoal id: " + testingLearningGoalId);
+        log.info("TEST - AnalyticsGoal uploaded (is not approved): " + result.getResponse().getContentAsString());
+        testingAnalyticsGoalId = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
+        log.info("TEST - AnalyticsGoal id: " + testingAnalyticsGoalId);
     }
 
     private void saveTestingTriad() throws Exception{

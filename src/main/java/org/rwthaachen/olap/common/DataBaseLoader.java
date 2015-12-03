@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.rwthaachen.olap.OpenLAPCoreApplication;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 import org.rwthaachen.olap.analyticsmethods.service.AnalyticsMethodsService;
+import org.rwthaachen.olap.analyticsmodules.model.AnalyticsGoal;
 import org.rwthaachen.olap.analyticsmodules.model.IndicatorReference;
-import org.rwthaachen.olap.analyticsmodules.model.LearningGoal;
 import org.rwthaachen.olap.analyticsmodules.model.Triad;
 import org.rwthaachen.olap.analyticsmodules.model.VisualizerReference;
 import org.rwthaachen.olap.analyticsmodules.service.AnalyticsModulesService;
@@ -59,7 +59,7 @@ public class DataBaseLoader {
 
         preloadedMetadata = loadAnalyticsMethod();
         preloadedTriad = loadTriad(preloadedMetadata);
-        loadLearningGoal(preloadedMetadata);
+        loadAnalyticsGoal(preloadedMetadata);
 
     }
 
@@ -140,22 +140,22 @@ public class DataBaseLoader {
      * TODO
      * @param preloadedMetadata
      */
-    private void loadLearningGoal(AnalyticsMethodMetadata preloadedMetadata) {
-        //Create a LearningGoal
-        LearningGoal learningGoal = new LearningGoal("LearningGoal1", "Testing Learning Goal", "lechip", false);
+    private void loadAnalyticsGoal(AnalyticsMethodMetadata preloadedMetadata) {
+        //Create a AnalyticsGoal
+        AnalyticsGoal analyticsGoal = new AnalyticsGoal("AnalyticsGoal1", "Testing Learning Goal", "lechip", false);
         try{
-            learningGoal = analyticsModulesService.saveLearningGoal(learningGoal);
-            learningGoal = analyticsModulesService.setLearningGoalActive(learningGoal.getId(),true);
-            learningGoal = analyticsModulesService.addAnalyticsMethodToLearningGoal(learningGoal.getId(),
+            analyticsGoal = analyticsModulesService.saveAnalyticsGoal(analyticsGoal);
+            analyticsGoal = analyticsModulesService.setAnalyticsGoalActive(analyticsGoal.getId(),true);
+            analyticsGoal = analyticsModulesService.addAnalyticsMethodToAnalyticsGoal(analyticsGoal.getId(),
                     preloadedMetadata);
             // To test that does not save twice
-            learningGoal = analyticsModulesService.addAnalyticsMethodToLearningGoal(learningGoal.getId(),
+            analyticsGoal = analyticsModulesService.addAnalyticsMethodToAnalyticsGoal(analyticsGoal.getId(),
                     preloadedMetadata);
-            log.info("Loaded LearningGoal: " + learningGoal.toString());
+            log.info("Loaded AnalyticsGoal: " + analyticsGoal.toString());
         }
         catch (Exception e)
         {
-            log.info("DataBaseLoader PostConstruct Failed loading LearningGoal");
+            log.info("DataBaseLoader PostConstruct Failed loading AnalyticsGoal");
             e.printStackTrace();
         }
     }

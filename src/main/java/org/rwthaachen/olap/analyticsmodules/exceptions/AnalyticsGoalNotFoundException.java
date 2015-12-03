@@ -7,12 +7,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Created by lechip on 29/11/15.
  */
-public class LearningGoalNotFoundException extends RuntimeException {
+public class AnalyticsGoalNotFoundException extends RuntimeException {
     private	static	final Logger log =
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
-    public LearningGoalNotFoundException(String message) {
+    public AnalyticsGoalNotFoundException(String message) {
         super(message);
-        log.error("LearningGoal not found: " + message);
+        log.error("AnalyticsGoal not found: " + message);
     }
 }

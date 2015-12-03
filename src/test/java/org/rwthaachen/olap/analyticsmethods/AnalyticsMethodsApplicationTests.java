@@ -411,7 +411,7 @@ public class AnalyticsMethodsApplicationTests {
 		result = mockMvc.perform(delete("/AnalyticsMethods/worngId"))
 				.andExpect(status().isNotFound())
 				.andReturn();
-		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
+		log.info("TEST - Delete Analytics Method response content: " + result.getResponse().getContentAsString());
 
 		// Test with normal request
 		result = mockMvc.perform(delete("/AnalyticsMethods/"+testingMethodId))
@@ -419,7 +419,7 @@ public class AnalyticsMethodsApplicationTests {
 				.andExpect(jsonPath("$..status").value(200))
 				.andExpect(jsonPath("$..message").value("Analytics Method with id {" + testingMethodId + "} deleted"))
 				.andReturn();
-		log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
+		log.info("TEST - Delete Analytics Method response content: " + result.getResponse().getContentAsString());
 	}
 
 	/**

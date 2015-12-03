@@ -6,14 +6,13 @@ import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
 
 import javax.persistence.*;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
  * Created by lechip on 27/11/15.
  */
 @Entity
-public class LearningGoal {
+public class AnalyticsGoal {
 
     @Id
     @GeneratedValue
@@ -34,7 +33,7 @@ public class LearningGoal {
     @Convert(converter = AnalyticsMethodMetadataSetConverter.class)
     Set<AnalyticsMethodMetadata> analyticsMethods;
 
-    public LearningGoal() {
+    public AnalyticsGoal() {
         this.id = "";
         this.name = "";
         this.author = "";
@@ -43,7 +42,7 @@ public class LearningGoal {
         this.analyticsMethods = new LinkedHashSet<AnalyticsMethodMetadata>();
     }
 
-    public LearningGoal(String name, String description, String author, boolean isActive) {
+    public AnalyticsGoal(String name, String description, String author, boolean isActive) {
         this.name = name;
         this.description = description;
         this.author = author;
@@ -105,7 +104,7 @@ public class LearningGoal {
         try {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            return "LearningGoal{" +
+            return "AnalyticsGoal{" +
                     "id='" + id + '\'' +
                     ", name='" + name + '\'' +
                     ", description='" + description + '\'' +
@@ -119,9 +118,9 @@ public class LearningGoal {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof LearningGoal)) return false;
+        if (!(o instanceof AnalyticsGoal)) return false;
 
-        LearningGoal that = (LearningGoal) o;
+        AnalyticsGoal that = (AnalyticsGoal) o;
 
         if (isActive() != that.isActive()) return false;
         if (!getId().equals(that.getId())) return false;
@@ -141,10 +140,10 @@ public class LearningGoal {
         return result;
     }
 
-    public void updateWithLearningGoal(LearningGoal learningGoal) {
-        this.setAuthor(learningGoal.getAuthor());
-        this.setDescription(learningGoal.getDescription());
-        this.setName(learningGoal.getName());
-        this.setActive(learningGoal.isActive);
+    public void updateWithAnalyticsGoal(AnalyticsGoal analyticsGoal) {
+        this.setAuthor(analyticsGoal.getAuthor());
+        this.setDescription(analyticsGoal.getDescription());
+        this.setName(analyticsGoal.getName());
+        this.setActive(analyticsGoal.isActive);
     }
 }

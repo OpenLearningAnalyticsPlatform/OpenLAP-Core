@@ -3,9 +3,10 @@ package org.rwthaachen.olap.analyticsmodules.controller;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
 import org.rwthaachen.olap.analyticsmethods.exceptions.AnalyticsMethodsUploadErrorException;
 import org.rwthaachen.olap.analyticsmethods.model.AnalyticsMethodMetadata;
-import org.rwthaachen.olap.analyticsmodules.exceptions.LearningGoalNotFoundException;
+import org.rwthaachen.olap.analyticsmodules.exceptions.AnalyticsModulesBadRequestException;
+import org.rwthaachen.olap.analyticsmodules.exceptions.AnalyticsGoalNotFoundException;
 import org.rwthaachen.olap.analyticsmodules.exceptions.TriadNotFoundException;
-import org.rwthaachen.olap.analyticsmodules.model.LearningGoal;
+import org.rwthaachen.olap.analyticsmodules.model.AnalyticsGoal;
 import org.rwthaachen.olap.analyticsmodules.model.Triad;
 import org.rwthaachen.olap.analyticsmodules.service.AnalyticsModulesService;
 import org.rwthaachen.olap.common.controller.GenericResponseDTO;
@@ -24,8 +25,8 @@ import java.util.List;
 @Controller
 public class AnalyticsModulesController {
 
-    public static final String LEARNING_GOAL_ACTION_ACTIVATE = "activate";
-    public static final String LEARNING_GOAL_ACTION_DEACTIVATE = "deactivate";
+    public static final String ANALYTICS_GOAL_ACTION_ACTIVATE = "activate";
+    public static final String ANALYTICS_GOAL_ACTION_DEACTIVATE = "deactivate";
     @Autowired
     AnalyticsModulesService modulesService;
 
@@ -99,130 +100,130 @@ public class AnalyticsModulesController {
     public @ResponseBody GenericResponseDTO deleteTriad(@PathVariable String id){
         modulesService.deleteTriad(id);
         return new GenericResponseDTO(HttpStatus.OK.value(),
-                "Learning Goal with id {" + id + "} deleted");
+                "Triad with id {" + id + "} deleted");
     }
 
     //endregion
 
-    //region LearningGoals
+    //region AnalyticsGoals
 
     /**
-     * HTTP endpoint handler method to get a LearningGoal by its ID.
-     * @param id of the requested LearningGoal
-     * @return JSON representation of the LearningGoal with the requested ID
+     * HTTP endpoint handler method to get a AnalyticsGoal by its ID.
+     * @param id of the requested AnalyticsGoal
+     * @return JSON representation of the AnalyticsGoal with the requested ID
      */
     @RequestMapping(
-            value = "/AnalyticsModules/LearningGoals/{id}",
+            value = "/AnalyticsModules/AnalyticsGoals/{id}",
             method = RequestMethod.GET
     )
-    public @ResponseBody LearningGoal getLearningGoalById(@PathVariable String id)
+    public @ResponseBody AnalyticsGoal getAnalyticsGoalById(@PathVariable String id)
     {
-        return modulesService.getLearningGoalById(id);
+        return modulesService.getAnalyticsGoalById(id);
     }
 
     /**
-     * HTTP endpoint handler method to save a LearningGoal.
-     * @param learningGoal to be saved
-     * @return JSON representation of the saved LearningGoal with an ID.
+     * HTTP endpoint handler method to save a AnalyticsGoal.
+     * @param AnalyticsGoal to be saved
+     * @return JSON representation of the saved AnalyticsGoal with an ID.
      */
     @RequestMapping(
-            value = "/AnalyticsModules/LearningGoals/",
+            value = "/AnalyticsModules/AnalyticsGoals/",
             method = RequestMethod.POST
     )
-    public @ResponseBody LearningGoal saveLearningGoal(@RequestBody LearningGoal learningGoal)
+    public @ResponseBody AnalyticsGoal saveAnalyticsGoal(@RequestBody AnalyticsGoal AnalyticsGoal)
     {
-        return modulesService.saveLearningGoal(learningGoal);
+        return modulesService.saveAnalyticsGoal(AnalyticsGoal);
     }
 
     /**
-     * HTTP endpoint handler method for Activating/Deactivating a LearningGoal
-     * @param id of the LearningGoal
+     * HTTP endpoint handler method for Activating/Deactivating a AnalyticsGoal
+     * @param id of the AnalyticsGoal
      * @param action "activate" or "deactivate"
-     * @return the updated LearningGoal with the sent status
+     * @return the updated AnalyticsGoal with the sent status
      */
     @RequestMapping(
-            value = "/AnalyticsModules/LearningGoals/{id}/{action}",
+            value = "/AnalyticsModules/AnalyticsGoals/{id}/{action}",
             method = RequestMethod.GET
     )
-    public @ResponseBody LearningGoal authorizeLearningGoal(@PathVariable String id, @PathVariable String action)
+    public @ResponseBody AnalyticsGoal authorizeAnalyticsGoal(@PathVariable String id, @PathVariable String action)
     {
-        if (action.equals(LEARNING_GOAL_ACTION_ACTIVATE))
+        if (action.equals(ANALYTICS_GOAL_ACTION_ACTIVATE))
         {
-            return modulesService.setLearningGoalActive(id, true);
+            return modulesService.setAnalyticsGoalActive(id, true);
         }
-        else if (action.equals(LEARNING_GOAL_ACTION_DEACTIVATE))
+        else if (action.equals(ANALYTICS_GOAL_ACTION_DEACTIVATE))
         {
-            return modulesService.setLearningGoalActive(id, false);
+            return modulesService.setAnalyticsGoalActive(id, false);
         }
-        else throw new AnalyticsMethodsBadRequestException("Invalid request for Learning Goal");
+        else throw new AnalyticsMethodsBadRequestException("Invalid request for Analytics Goal");
     }
 
     /**
-     * HTTP endpoint handler method to get all LearningGoals
-     * @return JSON representation of all the LearningGoals
+     * HTTP endpoint handler method to get all AnalyticsGoals
+     * @return JSON representation of all the AnalyticsGoals
      */
     @RequestMapping(
-            value = "/AnalyticsModules/LearningGoals/",
+            value = "/AnalyticsModules/AnalyticsGoals/",
             method = RequestMethod.GET
     )
-    public @ResponseBody List<LearningGoal> getAllLearningGoals()
+    public @ResponseBody List<AnalyticsGoal> getAllAnalyticsGoals()
     {
-        return modulesService.getAllLearningGoals();
+        return modulesService.getAllAnalyticsGoals();
     }
 
     /**
-     * HTTP endpoint handler method for attaching an AnalyticsMethod to a LearningGoal
-     * @param learningGoalId id of the LearningGoal
-     * @param analyticsMethodMetadata of the AnalyticsMethod to be related with the Learninggoal
-     * @return the LearningGoal with the attached analyticsMethodMetadata
+     * HTTP endpoint handler method for attaching an AnalyticsMethod to a AnalyticsGoal
+     * @param AnalyticsGoalId id of the AnalyticsGoal
+     * @param analyticsMethodMetadata of the AnalyticsMethod to be related with the AnalyticsGoal
+     * @return the AnalyticsGoal with the attached analyticsMethodMetadata
      */
     @RequestMapping(
-            value = "/AnalyticsModules/LearningGoals/{id}/addAnalyticsMethod",
+            value = "/AnalyticsModules/AnalyticsGoals/{id}/addAnalyticsMethod",
             method = RequestMethod.POST
     )
-    public @ResponseBody LearningGoal addAnalyticsMethodToLearningGoal(
-            @PathVariable String learningGoalId,
+    public @ResponseBody AnalyticsGoal addAnalyticsMethodToAnalyticsGoal(
+            @PathVariable String AnalyticsGoalId,
             @RequestBody AnalyticsMethodMetadata analyticsMethodMetadata)
     {
-        return modulesService.addAnalyticsMethodToLearningGoal(learningGoalId, analyticsMethodMetadata);
+        return modulesService.addAnalyticsMethodToAnalyticsGoal(AnalyticsGoalId, analyticsMethodMetadata);
     }
 
     /**
-     * HTTP endpoint handler method for updating LearningGoal
-     * @param learningGoal Data of the LearningGoal to be updated. Note that the isActive, id and the AnalyticsMethods
+     * HTTP endpoint handler method for updating AnalyticsGoal
+     * @param AnalyticsGoal Data of the AnalyticsGoal to be updated. Note that the isActive, id and the AnalyticsMethods
      *                     will not be updated using this method.
-     * @param id of the LearningGoal to be updated
-     * @return updated LearningGoal
+     * @param id of the AnalyticsGoal to be updated
+     * @return updated AnalyticsGoal
      */
     @RequestMapping(
-            value = "/AnalyticsModules/LearningGoals/{id}",
+            value = "/AnalyticsModules/AnalyticsGoals/{id}",
             method = RequestMethod.PUT
     )
-    public @ResponseBody LearningGoal updateLearningGoal(@RequestBody LearningGoal learningGoal,
+    public @ResponseBody AnalyticsGoal updateAnalyticsGoal(@RequestBody AnalyticsGoal AnalyticsGoal,
                                                          @PathVariable String id){
-        return modulesService.updateLearningGoal(learningGoal, id);
+        return modulesService.updateAnalyticsGoal(AnalyticsGoal, id);
     }
 
     /**
-     * HTTP endpoint handler method for deleting LearningGoal
-     * @param id id of the LearningGoal to be deleted
+     * HTTP endpoint handler method for deleting AnalyticsGoal
+     * @param id id of the AnalyticsGoal to be deleted
      * @return GenericResponseDTO with deletion confirmation
      */
     @RequestMapping(
-            value = "/AnalyticsModules/LearningGoals/{id}",
+            value = "/AnalyticsModules/AnalyticsGoals/{id}",
             method = RequestMethod.DELETE
     )
-    public @ResponseBody GenericResponseDTO deleteLearningGoal(@PathVariable String id){
-        modulesService.deleteLearningGoal(id);
+    public @ResponseBody GenericResponseDTO deleteAnalyticsGoal(@PathVariable String id){
+        modulesService.deleteAnalyticsGoal(id);
         return new GenericResponseDTO(HttpStatus.OK.value(),
-                "Learning goal with id {" + id + "} deleted");
+                "Analytics Goal with id {" + id + "} deleted");
     }
     //endregion
 
     //region ExceptionHandlers
     @ExceptionHandler({TriadNotFoundException.class,
             AnalyticsMethodsUploadErrorException.class,
-            LearningGoalNotFoundException.class})
+            AnalyticsGoalNotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public @ResponseBody
     GenericResponseDTO handleMethodNotFoundException(Exception e,
@@ -237,5 +238,22 @@ public class AnalyticsModulesController {
 
         return errorObject;
     }
+
+    @ExceptionHandler(AnalyticsModulesBadRequestException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public @ResponseBody
+    GenericResponseDTO handleMethodNotFoundException(AnalyticsModulesBadRequestException e,
+                                                     HttpServletRequest request)
+    {
+        GenericResponseDTO errorObject = new GenericResponseDTO(
+                HttpStatus.BAD_REQUEST.value(),
+                e.getClass().getName(),
+                e.getMessage(),
+                request.getServletPath()
+        );
+
+        return errorObject;
+    }
+
     //endregion
 }
