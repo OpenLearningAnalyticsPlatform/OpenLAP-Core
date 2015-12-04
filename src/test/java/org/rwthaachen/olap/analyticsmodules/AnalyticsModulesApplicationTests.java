@@ -21,6 +21,8 @@ import org.rwthaachen.olap.analyticsmodules.model.Triad;
 import org.rwthaachen.olap.analyticsmodules.model.VisualizerReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
@@ -262,62 +264,188 @@ public class AnalyticsModulesApplicationTests {
     //region AnalyticsGoals
     @Test
     public void getAnalyticsGoalByIdTest() throws Exception{
-        //TODO Test getting valid AnalyticsGoal
-        //TODO Test getting invalid AnalyticsGoal
-        //TODO Test getting unapproved AnalyticsGoal
+        MvcResult result;
+        // Test getting valid AnalyticsGoal
+        result = mockMvc.perform(get("/AnalyticsModules/AnalyticsGoals/"+testingAnalyticsGoalId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testingAnalyticsGoalId))
+                .andExpect(jsonPath("$.name").exists())
+                .andExpect(jsonPath("$.author").exists())
+                .andExpect(jsonPath("$.active").value(false))
+                .andReturn();
+        log.info("TEST - AnalyticsGoals get by Id result: " + result.getResponse().getContentAsString());
+
+        // Test getting invalid AnalyticsGoal
+        result = mockMvc.perform(get("/AnalyticsModules/AnalyticsGoals/wrongId"))
+                .andExpect(status().isNotFound())
+                .andReturn();
+        log.info("TEST - AnalyticsGoals get by wrong Id result: " + result.getResponse().getContentAsString());
     }
 
     @Test
     public void saveAnalyticsGoalTest() throws Exception{
-        //TODO Test creating valid AnalyticsGoal
-        //TODO Test creating invalid AnalyticsGoal
+        // Test creating valid AnalyticsGoal
+        // Create the AnalyticsGoal
+        AnalyticsGoal testAnalyticsGoal = new AnalyticsGoal("Test AnalyticsGoal 2", "A Analytics Goal", "lechip", true);
+        // Put the AnalyticsGoal as a String
+        String analyticsGoalAsJsonString = testAnalyticsGoal.toString();
+        MvcResult result = mockMvc.perform
+                (
+                        post("/AnalyticsModules/AnalyticsGoals/")
+                                .contentType(MediaType.APPLICATION_JSON).content(analyticsGoalAsJsonString)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Test AnalyticsGoal 2"))
+                .andExpect(jsonPath("$.author").exists())
+                .andExpect(jsonPath("$.active").value(false))
+                .andReturn();
+        log.info("TEST - AnalyticsGoal saved: " + result.getResponse().getContentAsString());
+        // Test creating invalid AnalyticsGoal
+        result = mockMvc.perform
+                (
+                        post("/AnalyticsModules/AnalyticsGoals/")
+                                .contentType(MediaType.APPLICATION_JSON).content("wrongString")
+                )
+                .andExpect(status().isBadRequest())
+                .andReturn();
+        log.info("TEST - AnalyticsGoal saving failure test: " + result.getResponse().getContentAsString());
+
     }
 
     @Test
     public void authorizeAnalyticsGoalTest() throws Exception{
-        //TODO Test approving a valid AnalyticsGoal
-        //TODO Test approving an invalid AnalyticsGoal
+        MvcResult result;
+        // Test approving a valid AnalyticsGoal
+        result = mockMvc.perform(put("/AnalyticsModules/AnalyticsGoals/" + testingAnalyticsGoalId + "/activate"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testingAnalyticsGoalId))
+                .andExpect(jsonPath("$.name").exists())
+                .andExpect(jsonPath("$.author").exists())
+                .andExpect(jsonPath("$.active").value(true))
+                .andReturn();
+        log.info("TEST - AnalyticsGoals activate: " + result.getResponse().getContentAsString());
+
+        result = mockMvc.perform(put("/AnalyticsModules/AnalyticsGoals/" + testingAnalyticsGoalId + "/deactivate"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testingAnalyticsGoalId))
+                .andExpect(jsonPath("$.name").exists())
+                .andExpect(jsonPath("$.author").exists())
+                .andExpect(jsonPath("$.active").value(false))
+                .andReturn();
+        log.info("TEST - AnalyticsGoals activate: " + result.getResponse().getContentAsString());
+
+        // Test approving an invalid AnalyticsGoal
+        result = mockMvc.perform(put("/AnalyticsModules/AnalyticsGoals/wrongId/activate"))
+                .andExpect(status().isNotFound())
+                .andReturn();
+        log.info("TEST - AnalyticsGoals activate with wrong Id result: " + result.getResponse().getContentAsString());
+
     }
 
     @Test
     public void getAllAnalyticsGoalsTest() throws Exception{
-        //TODO Test
+        // Test
+        MvcResult result;
+        result = mockMvc.perform(get("/AnalyticsModules/AnalyticsGoals/"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").exists())
+                .andExpect(jsonPath("$[0].name").exists())
+                .andExpect(jsonPath("$[0].author").exists())
+                .andExpect(jsonPath("$[0].active").exists())
+                .andReturn();
+        log.info("TEST - AnalyticsGoals get all: " + result.getResponse().getContentAsString());
     }
 
 
     @Test
     public void addAnalyticsMethodToAnalyticsGoalTest() throws Exception{
-        //TODO Test linking existing AnalyticsMethod to existing and approved AnalyticsGoal
-        //TODO Test linking exsiting AnalyticsMethod to exsiting but not approved AnalyticsGoal
-        //TODO Test linking nonexisting AnalyticsMethod to existing but not approved AnalyticsGoal
-        //TODO Test linking existing AnalyticsMethod to nonexisting but not approved AnalyticsGoal
+        MvcResult result;
+        // Test linking exsiting AnalyticsMethod to exsiting but not approved AnalyticsGoal
+        AnalyticsMethodMetadata methodMetadata = analyticsMethodsRepository.findOne(testingMethodId);
+
+        String metadataAsString = methodMetadata.toString();
+        result = mockMvc.perform
+                (
+                        put("/AnalyticsModules/AnalyticsGoals/" + testingAnalyticsGoalId + "/addAnalyticsMethod")
+                                .contentType(MediaType.APPLICATION_JSON).content(metadataAsString)
+                )
+                .andExpect(status().isBadRequest())
+                .andReturn();
+        log.info("TEST - AnalyticsGoal attach method failure: " + result.getResponse().getContentAsString());
+
+        // Approving a valid AnalyticsGoal
+        result = mockMvc.perform(put("/AnalyticsModules/AnalyticsGoals/" + testingAnalyticsGoalId + "/activate"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testingAnalyticsGoalId))
+                .andExpect(jsonPath("$.name").exists())
+                .andExpect(jsonPath("$.author").exists())
+                .andExpect(jsonPath("$.active").value(true))
+                .andReturn();
+        log.info("TEST - AnalyticsGoals activate: " + result.getResponse().getContentAsString());
+
+        // Test linking existing AnalyticsMethod to existing and approved AnalyticsGoal
+        result = mockMvc.perform
+                (
+                        put("/AnalyticsModules/AnalyticsGoals/" + testingAnalyticsGoalId + "/addAnalyticsMethod")
+                                .contentType(MediaType.APPLICATION_JSON).content(metadataAsString)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analyticsMethods.[0].id").value(testingMethodId))
+                .andExpect(jsonPath("$.analyticsMethods.[0].name").exists())
+                .andExpect(jsonPath("$.analyticsMethods.[0].creator").exists())
+                .andReturn();
+        log.info("TEST - AnalyticsGoal attach method success: " + result.getResponse().getContentAsString());
+
     }
 
     @Test
     public void updateAnalyticsGoalTest() throws Exception{
-        //TODO test updating existing AnalyticsGoal
-        //TODO test updating invalid AnalyticsGoal
+        //Create the AnalyticsGoal
+        AnalyticsGoal testAnalyticsGoal = new AnalyticsGoal("Updated", "Updated", "Updated", true);
+        //Put the AnalyticsGoal as a String
+        String analyticsGoalAsJsonString = testAnalyticsGoal.toString();
+
+        MvcResult result;
+        // Test updating existing AnalyticsGoal
+        result = mockMvc.perform
+                (
+                        put("/AnalyticsModules/AnalyticsGoals/" + testingAnalyticsGoalId)
+                                .contentType(MediaType.APPLICATION_JSON).content(analyticsGoalAsJsonString)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testingMethodId))
+                .andExpect(jsonPath("$.name").value("Updated"))
+                .andExpect(jsonPath("$.description").value("Updated"))
+                .andReturn();
+        log.info("TEST - AnalyticsGoal update success: " + result.getResponse().getContentAsString());
+        // Test updating invalid AnalyticsGoal
+        result = mockMvc.perform
+                (
+                        put("/AnalyticsModules/AnalyticsGoals/worngId")
+                                .contentType(MediaType.APPLICATION_JSON).content(analyticsGoalAsJsonString)
+                )
+                .andExpect(status().isNotFound())
+                .andReturn();
+        log.info("TEST - AnalyticsGoal update failure: " + result.getResponse().getContentAsString());
     }
 
     @Test
     public void deleteAnalyticsGoalTest() throws Exception{
         MvcResult result;
 
-        // Test deleting invalid Triad
+        // Test deleting existing AnalyticsGoal
         result = mockMvc.perform(delete("/AnalyticsModules/AnalyticsGoals/worngId"))
                 .andExpect(status().isNotFound())
                 .andReturn();
         log.info("TEST - Delete wrong Goal response content: " + result.getResponse().getContentAsString());
 
-        // Test deleting existing Triad
+        // Test deleting invalid AnalyticsGoal
         result = mockMvc.perform(delete("/AnalyticsModules/AnalyticsGoals/"+testingTriadId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$..status").value(200))
                 .andExpect(jsonPath("$..message").value("Analytics Goal with id {" + testingTriadId + "} deleted"))
                 .andReturn();
         log.info("TEST - Delete Goal content: " + result.getResponse().getContentAsString());
-        //TODO test deleting existing AnalyticsGoal
-        //TODO test deleting invalid AnalyticsGoal
     }
 
     //endregion
@@ -327,7 +455,7 @@ public class AnalyticsModulesApplicationTests {
     private void deleteFolder(String dir) {
         File directoryToDelete = new File(dir);
         try {
-            log.info("TEST - Deleting folder :" + directoryToDelete);
+            log.info("TEST SETUP - Deleting folder :" + directoryToDelete);
             FileUtils.deleteDirectory(directoryToDelete);
         } catch (IOException e) {
             e.printStackTrace();
@@ -350,9 +478,9 @@ public class AnalyticsModulesApplicationTests {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        log.info("TEST - AnalyticsMethod uploaded: " + result.getResponse().getContentAsString());
+        log.info("TEST SETUP - AnalyticsMethod uploaded: " + result.getResponse().getContentAsString());
         testingMethodId = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
-        log.info("TEST - AnalyticsMethod id: " + testingMethodId);
+        log.info("TEST SETUP - AnalyticsMethod id: " + testingMethodId);
     }
 
     private void saveTestingAnalyticsGoal() throws Exception{
@@ -367,9 +495,9 @@ public class AnalyticsModulesApplicationTests {
                 )
                 .andExpect(status().isOk())
                 .andReturn();
-        log.info("TEST - AnalyticsGoal uploaded (is not approved): " + result.getResponse().getContentAsString());
+        log.info("TEST SETUP - AnalyticsGoal uploaded (is not approved): " + result.getResponse().getContentAsString());
         testingAnalyticsGoalId = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
-        log.info("TEST - AnalyticsGoal id: " + testingAnalyticsGoalId);
+        log.info("TEST SETUP - AnalyticsGoal id: " + testingAnalyticsGoalId);
     }
 
     private void saveTestingTriad() throws Exception{
@@ -401,9 +529,9 @@ public class AnalyticsModulesApplicationTests {
                 )
                 .andExpect(status().isOk())
                 .andReturn();
-        log.info("TEST - Triad: " + result.getResponse().getContentAsString());
+        log.info("TEST SETUP - Triad: " + result.getResponse().getContentAsString());
         testingTriadId = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
-        log.info("TEST - Triad id: " + testingTriadId);
+        log.info("TEST SETUP - Triad id: " + testingTriadId);
     }
 
     /**
@@ -426,11 +554,11 @@ public class AnalyticsModulesApplicationTests {
     private MockMultipartFile prepareMultiPartFile(String resourceJarUpload) throws Exception {
         // Load the directory as a resource
         URL dirURL = getClass().getClassLoader().getResource(resourceJarUpload);
-        log.info("TEST - Resource dir URL: " + dirURL.toString());
+        log.info("TEST SETUP - Resource dir URL: " + dirURL.toString());
         // Make file from the uri
         File file = new File(dirURL.toURI());
         // Check file content
-        log.info("TEST - File check: isFile:" + file.isFile()
+        log.info("TEST SETUP - File check: isFile:" + file.isFile()
                 + ",  fileName: " +file.getName()
                 + ",  exists: " + file.exists());
         // Make an input stream for the mock

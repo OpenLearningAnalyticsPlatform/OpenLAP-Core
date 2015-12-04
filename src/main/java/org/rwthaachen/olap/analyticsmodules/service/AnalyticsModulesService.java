@@ -237,7 +237,7 @@ public class AnalyticsModulesService {
     public AnalyticsGoal updateAnalyticsGoal(AnalyticsGoal analyticsGoal, String id) {
         AnalyticsGoal responseAnalyticsGoal = analyticsGoalRepository.findOne(id);
         if(responseAnalyticsGoal == null){
-            throw new AnalyticsModulesBadRequestException("Analytics Goal with id = {"
+            throw new AnalyticsGoalNotFoundException("Analytics Goal with id = {"
                     + id + "} not found.");
         }
         responseAnalyticsGoal.updateWithAnalyticsGoal(analyticsGoal);

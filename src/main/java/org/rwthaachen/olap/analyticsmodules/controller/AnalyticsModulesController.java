@@ -143,7 +143,7 @@ public class AnalyticsModulesController {
      */
     @RequestMapping(
             value = "/AnalyticsModules/AnalyticsGoals/{id}/{action}",
-            method = RequestMethod.GET
+            method = RequestMethod.PUT
     )
     public @ResponseBody AnalyticsGoal authorizeAnalyticsGoal(@PathVariable String id, @PathVariable String action)
     {
@@ -178,8 +178,8 @@ public class AnalyticsModulesController {
      * @return the AnalyticsGoal with the attached analyticsMethodMetadata
      */
     @RequestMapping(
-            value = "/AnalyticsModules/AnalyticsGoals/{id}/addAnalyticsMethod",
-            method = RequestMethod.POST
+            value = "/AnalyticsModules/AnalyticsGoals/{AnalyticsGoalId}/addAnalyticsMethod",
+            method = RequestMethod.PUT
     )
     public @ResponseBody AnalyticsGoal addAnalyticsMethodToAnalyticsGoal(
             @PathVariable String AnalyticsGoalId,
