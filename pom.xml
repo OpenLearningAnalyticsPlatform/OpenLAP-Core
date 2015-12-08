@@ -3,13 +3,15 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>org.rwth-aachen.olap</groupId>
-	<artifactId>AnalyticsMethods</artifactId>
+	<groupId>de.rwth-aachen.openlap</groupId>
+	<artifactId>openlap-core</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>AnalyticsMethods</name>
-	<description>Analytics Methods macro component for the Open Learning Analytics Platform of the RWTH Aachen</description>
+	<name>OpenLAP-Core</name>
+	<description>This artifact contains the core macro components: Analytics Engine, Analytics Methods and
+		Analytics Modules of the Open Learning Analytics Platform of the RWTH Aachen.
+	</description>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
@@ -33,13 +35,13 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.github.OpenLearningAnalyticsPlatform</groupId>
-			<artifactId>OLAPDataSet</artifactId>
+			<artifactId>OpenLAP-DataSet</artifactId>
 			<version>-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.github.OpenLearningAnalyticsPlatform</groupId>
-			<artifactId>AnalyticsMethodsFramework</artifactId>
+			<artifactId>OpenLAP-AnalyticsMethodsFramework</artifactId>
 			<version>-SNAPSHOT</version>
 		</dependency>
 
