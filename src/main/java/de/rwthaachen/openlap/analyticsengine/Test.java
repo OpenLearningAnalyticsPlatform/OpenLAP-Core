@@ -6,6 +6,6 @@ package de.rwthaachen.openlap.analyticsengine;
  */
 public class Test {
     public String test(){
-        return "This is just a test";
+        return "Trying to change and push changes to GitHub site";
     }
 }
