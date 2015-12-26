@@ -224,6 +224,13 @@ public class AnalyticsModulesController {
     //endregion
 
     //region ExceptionHandlers
+    /**
+     * Handler for TriadNotFoundException, AnalyticsMethodsUploadErrorExceptio and AnalyticsGoalNotFoundException.
+     * It returns the appropriate HTTP Error code.
+     * @param e exception
+     * @param request HTTP request
+     * @return A GenericResponseDTO with the information about the exception and its cause.
+     */
     @ExceptionHandler({TriadNotFoundException.class,
             AnalyticsMethodsUploadErrorException.class,
             AnalyticsGoalNotFoundException.class})
@@ -242,6 +249,13 @@ public class AnalyticsModulesController {
         return errorObject;
     }
 
+    /**
+     * Handler for AnalyticsModulesBadRequestException.
+     * It returns the appropriate HTTP Error code.
+     * @param e exception
+     * @param request HTTP request
+     * @return A GenericResponseDTO with the information about the exception and its cause.
+     */
     @ExceptionHandler(AnalyticsModulesBadRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public @ResponseBody

@@ -9,7 +9,9 @@ import org.xeustechnologies.jcl.proxy.CglibProxyProvider;
 import org.xeustechnologies.jcl.proxy.ProxyProviderFactory;
 
 /**
- * TODO
+ * A custom Java Class Path Loader that is responsible of loading JARs dynamically to the active ClassPath.
+ * It uses the JCL developed by Kamran Zafar(http://kamranzafar.org/)
+ * and available at https://github.com/kamranzafar/JCL/
  */
 public class AnalyticsMethodsClassPathLoader {
 
@@ -17,8 +19,8 @@ public class AnalyticsMethodsClassPathLoader {
     private JclObjectFactory factory;
 
     /**
-     * TODO
-     * @param analyticsMethodsJarsFolder
+     * Standard constructor that prepares this classpath loader to use the given JAR location to load classes from.
+     * @param analyticsMethodsJarsFolder JAR File where the desired loading classes are located.
      */
     public AnalyticsMethodsClassPathLoader(String analyticsMethodsJarsFolder) {
 
@@ -40,10 +42,10 @@ public class AnalyticsMethodsClassPathLoader {
     }
 
     /**
-     * TODO
-     * @param implementingClass
-     * @return
-     * @throws AnalyticsMethodLoaderException
+     * Loads a class from a JAR of the folder specified in the constructor to the current ClassPath.
+     * @param implementingClass The name of class to be loaded to the current ClassPath
+     * @return An AnalyticsMethod that is loaded from the JAR.
+     * @throws AnalyticsMethodLoaderException If the specified JAR file does not contain the requested class.
      */
     public AnalyticsMethod loadClass(String implementingClass) throws AnalyticsMethodLoaderException {
         //Create object of loaded class

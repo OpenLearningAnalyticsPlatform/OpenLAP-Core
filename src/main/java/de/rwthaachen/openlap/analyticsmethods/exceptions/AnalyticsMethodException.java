@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by lechip on 15/11/15.
+ * Custom generic Exception for AnalyticsMethods.
  */
 public abstract class AnalyticsMethodException extends Exception{
 

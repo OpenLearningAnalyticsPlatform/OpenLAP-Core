@@ -11,7 +11,8 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Created by lechip on 29/11/15.
+ * An object Mapper for the DataAccessLayer to convert an AnalyticsMethodMetadata sets to a String during persistence
+ * operations
  */
 public class AnalyticsMethodMetadataSetConverter implements AttributeConverter<Set<AnalyticsMethodMetadata>, String> {
 

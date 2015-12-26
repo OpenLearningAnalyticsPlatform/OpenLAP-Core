@@ -7,7 +7,8 @@ import javax.persistence.AttributeConverter;
 import java.io.IOException;
 
 /**
- * Created by lechip on 29/11/15.
+ * An object Mapper for the DataAccessLayer to convert an VisualizerReference sets to a String during persistence
+ * operations
  */
 public class VisualizerReferenceConverter implements AttributeConverter<VisualizerReference, String> {
     ObjectMapper mapper = new ObjectMapper();

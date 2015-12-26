@@ -50,8 +50,8 @@ public class AnalyticsMethodsService {
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     /**
-     * TODO
-     * @return
+     * Lists all the Metadata of the  AnalyticsMethods available
+     * @return A List of the available AnalyticsMethods
      */
     public List<AnalyticsMethodMetadata> viewAllAnalyticsMethods() {
         ArrayList<AnalyticsMethodMetadata> result = new ArrayList<AnalyticsMethodMetadata>();
@@ -61,9 +61,9 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     * TODO
-     * @param id
-     * @return
+     * Returns the Metadata of the Analytics Method of the specified ID
+     * @param id ID of the AnalyticsMethod to view
+     * @return The AnalyticsMethod with Metadata of the specified ID
      * @throws AnalyticsMethodNotFoundException
      */
     public AnalyticsMethodMetadata viewAnalyticsMethod(String id) throws AnalyticsMethodNotFoundException {
@@ -80,10 +80,10 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     * TODO
-     * @param methodMetadata
-     * @param jarBundle
-     * @return
+     * Post an AnalyticsMethod to the Server to be validated and made available for usage.
+     * @param methodMetadata The metadata to upload as manifest of the AnalyticsMethod
+     * @param jarBundle The JAR file with the implementation of the AnalyticsMethod
+     * @return The Metadata of the uploaded AnalyticsMethod if deemed valid by the OpenLAP
      */
     public AnalyticsMethodMetadata uploadAnalyticsMethod(
             AnalyticsMethodMetadata methodMetadata, MultipartFile jarBundle) {
@@ -130,11 +130,11 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     * TODO
-     * @param methodMetadata
-     * @param id
-     * @param jarBundle
-     * @return
+     * Update an AnalyticsMethod to the Server to be validated and made available for usage.
+     * @param methodMetadata The metadata to upload as manifest of the AnalyticsMethod
+     * @param id ID of the AnalyticsMethod Metadata that is to be updated.
+     * @param jarBundle The JAR file with the implementation of the AnalyticsMethod
+     * @return The Metadata of the uploaded AnalyticsMethod if deemed valid by the OpenLAP
      */
     public AnalyticsMethodMetadata updateAnalyticsMethod(AnalyticsMethodMetadata methodMetadata,
                                                          String id, MultipartFile jarBundle) {
@@ -200,10 +200,11 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     * TODO
-     * @param analyticsMethodId
-     * @param configuration
-     * @return
+     * Method that allows to validate an OLAPPortConfiguration of a specific AnalyticsMethod.
+     * @param analyticsMethodId ID of the AnalyticsMethod Metadata to be validated against the OLAPPortConfiguration.
+     * @param configuration The OLAPPortConfiguration to be validated
+     * @return An Object with the validation information of the OLAPPortConfiguration against the specified Analytics
+     * Method.
      * @throws AnalyticsMethodLoaderException
      */
     public OLAPDataSetConfigurationValidationResult validateConfiguration(
@@ -216,9 +217,10 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     * TODO
-     * @param analyticsMethodId
-     * @return
+     * A Method that creates an instance of an AnalyticsMethod object from the JAR location contained in the
+     * corresponding AnalyticsMethodMetadata.
+     * @param analyticsMethodId The ID of the Analytics Method to instantiate
+     * @return A new instance of the specified Analytics Method.
      * @throws AnalyticsMethodLoaderException
      */
     public AnalyticsMethod loadAnalyticsMethodInstance(String analyticsMethodId) throws AnalyticsMethodLoaderException
@@ -242,18 +244,18 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     * TODO
-     * @param id
-     * @return
+     * Method that returns the OLAPColumnConfigurationData of the input ports of a specific AnalyticsMethod
+     * @param id ID of the AnalyticsMethod Metadata
+     * @return A list of OLAPColumnConfigurationData corresponding to the input ports of the AnalyticsMethod
      */
     public List<OLAPColumnConfigurationData> GetInputPortsForMethod(String id) {
         return getPortsForMethod(id, INPUT_PORTS);
     }
 
     /**
-     * TODO
-     * @param id
-     * @return
+     * Method that returns the OLAPColumnConfigurationData of the output ports of a specific AnalyticsMethod
+     * @param id ID of the AnalyticsMethod Metadata
+     * @return A list of OLAPColumnConfigurationData corresponding to the output ports of the AnalyticsMethod
      */
     public List<OLAPColumnConfigurationData> GetOutputPortsForMethod(String id) {
         return getPortsForMethod(id, OUTPUT_PORTS);

@@ -5,7 +5,8 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 /**
- * Created by lechip on 05/11/15.
+ * CRUD repository to handle the Data Access Layer of the AnalyticsMethods.
+ * It is based on the spring CrudRepository.
  */
 @Repository
 public interface AnalyticsMethodsRepository

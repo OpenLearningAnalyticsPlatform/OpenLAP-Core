@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by lechip on 28/11/15.
+ * Custom Exception to be thrown whenever the Triad is not found.
  */
 public class TriadNotFoundException extends RuntimeException {
     private	static	final Logger log =
