@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by lechip on 14/11/15.
+ * Custom Exception to be thrown whenever the macro component receives a malformed request.
  */
 public class AnalyticsMethodsBadRequestException extends RuntimeException  {
 

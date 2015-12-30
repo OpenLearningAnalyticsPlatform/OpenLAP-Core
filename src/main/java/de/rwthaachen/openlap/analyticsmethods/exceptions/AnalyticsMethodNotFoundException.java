@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by lechip on 10/11/15.
+ * Custom Exception to be thrown whenever an AnalyticsMethod is not found.
  */
 public class AnalyticsMethodNotFoundException extends RuntimeException {
 

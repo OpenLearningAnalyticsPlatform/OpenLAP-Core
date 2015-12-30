@@ -32,8 +32,8 @@ public class AnalyticsMethodsUploadController {
     AnalyticsMethodsService analyticsMethodsService;
 
     /**
-     * TODO
-     * @return
+     * HTTP endpoint handler method that lists all the Metadata of the  AnalyticsMethods available
+     * @return A List of the available AnalyticsMethods
      */
     @RequestMapping(
             value = "/AnalyticsMethods",
@@ -46,9 +46,9 @@ public class AnalyticsMethodsUploadController {
     }
 
     /**
-     * TODO
-     * @param id
-     * @return
+     * HTTP endpoint handler method that returns the Metadata of the Analytics Method of the specified ID
+     * @param id ID of the AnalyticsMethod to view
+     * @return The AnalyticsMethod with Metadata of the specified ID
      */
     @RequestMapping
             (
@@ -61,10 +61,11 @@ public class AnalyticsMethodsUploadController {
     }
 
     /**
-     * TODO
-     * @param jarBundle
-     * @param methodMetadataText
-     * @return
+     * HTTP endpoint handler method that enables to post an AnalyticsMethod to the Server to be validated and
+     * made available for usage.
+     * @param jarBundle The JAR file with the implementation of the AnalyticsMethod
+     * @param methodMetadataText A string with the JSON of the metadata to upload as manifest of the AnalyticsMethod
+     * @return The Metadata of the uploaded AnalyticsMethod if deemed valid by the OpenLAP
      */
     @RequestMapping
             (
@@ -94,11 +95,12 @@ public class AnalyticsMethodsUploadController {
     }
 
     /**
-     * TODO
-     * @param methodMetadataText
-     * @param jarBundle
-     * @param id
-     * @return
+     * HTTP endpoint handler method that allows to update an AnalyticsMethod to the Server to be validated and made
+     * available for usage.
+     * @param methodMetadataText A string with the JSON of the metadata to upload as manifest of the AnalyticsMethod
+     * @param jarBundle The JAR file with the implementation of the AnalyticsMethod
+     * @param id ID of the AnalyticsMethod Metadata that is to be updated.
+     * @return The Metadata of the uploaded AnalyticsMethod if deemed valid by the OpenLAP
      */
     @RequestMapping
             (
@@ -129,10 +131,11 @@ public class AnalyticsMethodsUploadController {
     }
 
     /**
-     * TODO
-     * @param configurationMapping
-     * @param id
-     * @return
+     * HTTP endpoint handler method that allows to validate an OLAPPortConfiguration of a specific AnalyticsMethod.
+     * @param configurationMapping The OLAPPortConfiguration to be validated
+     * @param id The ID of the AnalyticsMethod Metadata to be validated against the OLAPPortConfiguration.
+     * @return An Object with the validation information of the OLAPPortConfiguration against the specified Analytics
+     * Method.
      */
     @RequestMapping
             (
@@ -149,9 +152,10 @@ public class AnalyticsMethodsUploadController {
     }
 
     /**
-     * TODO
-     * @param id
-     * @return
+     * HTTP endpoint handler method that returns the OLAPColumnConfigurationData of the input ports of a
+     * specific AnalyticsMethod
+     * @param id ID of the AnalyticsMethod Metadata
+     * @return A list of OLAPColumnConfigurationData corresponding to the input ports of the AnalyticsMethod
      */
     @RequestMapping
             (
@@ -168,9 +172,10 @@ public class AnalyticsMethodsUploadController {
 
 
     /**
-     * TODO
-     * @param id
-     * @return
+     * HTTP endpoint handler method that returns the OLAPColumnConfigurationData of the output ports of a
+     * specific AnalyticsMethod
+     * @param id ID of the AnalyticsMethod Metadata
+     * @return A list of OLAPColumnConfigurationData corresponding to the output ports of the AnalyticsMethod
      */
     @RequestMapping
             (
@@ -202,6 +207,14 @@ public class AnalyticsMethodsUploadController {
     }
 
     //region ExceptionHandlers
+
+    /**
+     * Handler for AnalyticsMethodNotFoundException.
+     * It returns the appropriate HTTP Error code.
+     * @param e exception
+     * @param request HTTP request
+     * @return A GenericResponseDTO with the information about the exception and its cause.
+     */
     @ExceptionHandler(AnalyticsMethodNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public @ResponseBody
@@ -218,6 +231,13 @@ public class AnalyticsMethodsUploadController {
         return errorObject;
     }
 
+    /**
+     * Handler for AnalyticsMethodsUploadErrorException and IOException
+     * It returns the appropriate HTTP Error code.
+     * @param e exception
+     * @param request HTTP request
+     * @return A GenericResponseDTO with the information about the exception and its cause.
+     */
     @ExceptionHandler({AnalyticsMethodsUploadErrorException.class, IOException.class})
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public @ResponseBody
@@ -234,6 +254,13 @@ public class AnalyticsMethodsUploadController {
         return errorObject;
     }
 
+    /**
+     * Handler for AnalyticsMethodsBadRequestException
+     * It returns the appropriate HTTP Error code.
+     * @param e exception
+     * @param request HTTP request
+     * @return A GenericResponseDTO with the information about the exception and its cause.
+     */
     @ExceptionHandler(AnalyticsMethodsBadRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public @ResponseBody
@@ -250,6 +277,13 @@ public class AnalyticsMethodsUploadController {
         return errorObject;
     }
 
+    /**
+     * Handler for AnalyticsMethodLoaderException
+     * It returns the appropriate HTTP Error code.
+     * @param e exception
+     * @param request HTTP request
+     * @return A GenericResponseDTO with the information about the exception and its cause.
+     */
     @ExceptionHandler(AnalyticsMethodLoaderException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public @ResponseBody

@@ -9,7 +9,8 @@ import javax.persistence.Converter;
 import java.io.IOException;
 
 /**
- * Created by lechip on 29/11/15.
+ * An object Mapper for the DataAccessLayer to convert an OLAPPortConfiguration sets to a String during persistence
+ * operations
  */
 @Converter
 public class OLAPPortConfigurationConverter implements AttributeConverter<OLAPPortConfiguration, String> {

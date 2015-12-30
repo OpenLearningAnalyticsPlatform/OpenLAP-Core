@@ -1,7 +1,7 @@
 package de.rwthaachen.openlap.analyticsmethods.exceptions;
 
 /**
- * Created by lechip on 15/11/15.
+ * Custom Exception to be thrown whenever a validation error happens with an AnalyticsMethod.
  */
 public class AnalyticsMethodUploadValidationException extends AnalyticsMethodException {
 

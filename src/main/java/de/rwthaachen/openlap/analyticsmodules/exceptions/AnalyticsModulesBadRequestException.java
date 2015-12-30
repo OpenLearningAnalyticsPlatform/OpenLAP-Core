@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by lechip on 29/11/15.
+ * Custom Exception to be thrown whenever the AnalyticsGoal macro component has a bad request.
  */
 public class AnalyticsModulesBadRequestException extends RuntimeException  {
 

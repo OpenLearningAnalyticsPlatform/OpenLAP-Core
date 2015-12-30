@@ -13,16 +13,16 @@ import java.io.InputStream;
 import java.net.URL;
 
 /**
- * TODO
+ * An utility class to validate XML files against an XSD.
  */
 public class SimpleXmlSchemaValidator {
 
     /**
-     * TODO
-     * @param validationInformation
-     * @param streamXmlToCheck
-     * @param xsdUrl
-     * @return
+     * Validates an XML in an InputStream against an XSD.
+     * @param validationInformation Object to return the information of the validity of the XML.
+     * @param streamXmlToCheck Stream with the XML to be validated.
+     * @param xsdUrl A String with the URL of the XSD to validate the XML with.
+     * @return True if the XML is valid according to the XSD, false otherwise.
      */
     public static boolean validateXML(AnalyticsMethodsValidationInformation validationInformation,
                                       InputStream streamXmlToCheck, String xsdUrl)

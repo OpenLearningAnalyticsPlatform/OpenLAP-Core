@@ -20,10 +20,10 @@ public class FileHandler {
     }
 
     /**
-     * TODO
-     * @param fileToSave
-     * @param savingFolder
-     * @param fileName
+     * Saves a file in the specified location.
+     * @param fileToSave The File Data to be saved.
+     * @param savingFolder Path of the folder to save the file.
+     * @param fileName Name of the File.
      * @throws IOException
      * @throws SecurityException
      */
@@ -48,9 +48,9 @@ public class FileHandler {
     }
 
     /**
-     * TODO
-     * @param deletionFolder
-     * @param fileName
+     * Deletes a file.
+     * @param deletionFolder Path of the folder containing the file to be deleted.
+     * @param fileName Filename to be deleted.
      */
     public void deleteFile(String deletionFolder, String fileName){
         File fileToDelete= new File(deletionFolder + fileName);
@@ -59,16 +59,16 @@ public class FileHandler {
     }
 
     /**
-     * TODO
-     * @param deletionFolder
+     * Deletes an entire folder
+     * @param deletionFolder Folder to be deleted
      */
     public void deleteFolder(String deletionFolder){
         deleteFile(deletionFolder,"");
     }
 
     /**
-     * TODO
-     * @param savingFolder
+     * Creates a folder if the folder does not exists already.
+     * @param savingFolder Path of the folder to create.
      * @throws SecurityException
      */
     private void createFolderIfNotExisting(String savingFolder) throws SecurityException {

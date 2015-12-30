@@ -12,7 +12,8 @@ import org.springframework.stereotype.Service;
 import java.util.regex.Pattern;
 
 /**
- * TODO
+ * A validation utility class to check for upload requests of Analytics Methods so the files submitted effectively
+ * implement the OpenLAP-AnalytisMethodFramework correctly.
  */
 @Service
 public class AnalyticsMethodsUploadValidator {
@@ -26,10 +27,14 @@ public class AnalyticsMethodsUploadValidator {
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     /**
-     * TODO
-     * @param methodMetadata
-     * @param analyticsMethodsJarsFolder
-     * @return
+     * Validates the JAR so it contains the class specified on the AnalyticsMethodsMetadata field that describes the
+     * implementing class. Additionally checks for the JAR containing valid files and, if provided, the validity of
+     * the PMML file of the AnalyticsMethod.
+     * @param methodMetadata The AnalyticsMethodMetadata that describes the location of the JAR file and
+     *                       class implementing the OpenLAP-AnalyticsMethodsFramework.
+     * @param analyticsMethodsJarsFolder The location where the JAR file resides.
+     * @return A AnalyticsMethodsValidationInformation that encapsulates the validation information of the
+     * Analytics Method uploaded
      */
     public AnalyticsMethodsValidationInformation validatemethod
             (AnalyticsMethodMetadata methodMetadata, String analyticsMethodsJarsFolder) {
@@ -76,9 +81,9 @@ public class AnalyticsMethodsUploadValidator {
     }
 
     /**
-     * TODO
-     * @param input
-     * @return
+     * Utility method to check only ASCII Alphanumeric filenames
+     * @param input The filename
+     * @return true if the filename is ASCII Alphanumeric, false otherwise
      */
     private boolean validateFilename(String input){
         final Pattern pattern = Pattern.compile("^[a-zA-Z0-9]*$");

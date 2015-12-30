@@ -8,7 +8,8 @@ import javax.persistence.AttributeConverter;
 import java.io.IOException;
 
 /**
- * Created by lechip on 29/11/15.
+ * An object Mapper for the DataAccessLayer to convert an AnalyticsMethodMetadata to a String during persistence
+ * operations
  */
 public class AnalyticsMethodMetadataConverter implements AttributeConverter<AnalyticsMethodMetadata, String> {
 
