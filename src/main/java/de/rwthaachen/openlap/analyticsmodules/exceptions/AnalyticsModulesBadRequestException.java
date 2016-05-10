@@ -7,9 +7,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Custom Exception to be thrown whenever the AnalyticsGoal macro component has a bad request.
  */
-public class AnalyticsModulesBadRequestException extends RuntimeException  {
+public class AnalyticsModulesBadRequestException extends RuntimeException {
 
-    private	static	final Logger log =
+    private static final Logger log =
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     public AnalyticsModulesBadRequestException(String message) {

@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
  */
 public class AnalyticsMethodsUploadErrorException extends RuntimeException {
 
-    private	static	final Logger log =
+    private static final Logger log =
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     public AnalyticsMethodsUploadErrorException(String message) {

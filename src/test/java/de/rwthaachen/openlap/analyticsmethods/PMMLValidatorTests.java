@@ -18,6 +18,7 @@ public class PMMLValidatorTests {
     public static final String PMML_EXAMPLE_WRONG = "/pmmlXmlSamples/example_breakfast.xml";
 
     String schemaUrl = "http://dmg.org/pmml/v4-1/pmml-4-1.xsd";
+
     //Tests an example PMML
     @Test
     public void testPMMLValidation() throws URISyntaxException, IOException {

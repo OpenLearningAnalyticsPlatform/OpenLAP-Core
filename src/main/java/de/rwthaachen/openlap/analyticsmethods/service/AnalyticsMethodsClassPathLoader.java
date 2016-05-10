@@ -20,6 +20,7 @@ public class AnalyticsMethodsClassPathLoader {
 
     /**
      * Standard constructor that prepares this classpath loader to use the given JAR location to load classes from.
+     *
      * @param analyticsMethodsJarsFolder JAR File where the desired loading classes are located.
      */
     public AnalyticsMethodsClassPathLoader(String analyticsMethodsJarsFolder) {
@@ -37,12 +38,13 @@ public class AnalyticsMethodsClassPathLoader {
         jcl.getCurrentLoader().setOrder(5);
 
         // Set default to cglib (from version 2.2.1)
-        ProxyProviderFactory.setDefaultProxyProvider( new CglibProxyProvider() );
+        ProxyProviderFactory.setDefaultProxyProvider(new CglibProxyProvider());
         factory = JclObjectFactory.getInstance(true);
     }
 
     /**
      * Loads a class from a JAR of the folder specified in the constructor to the current ClassPath.
+     *
      * @param implementingClass The name of class to be loaded to the current ClassPath
      * @return An AnalyticsMethod that is loaded from the JAR.
      * @throws AnalyticsMethodLoaderException If the specified JAR file does not contain the requested class.
@@ -50,18 +52,14 @@ public class AnalyticsMethodsClassPathLoader {
     public AnalyticsMethod loadClass(String implementingClass) throws AnalyticsMethodLoaderException {
         //Create object of loaded class
         AnalyticsMethod abstractMethod;
-        try{
+        try {
             abstractMethod = (AnalyticsMethod) factory.create(jcl, implementingClass);
             return abstractMethod;
-        }
-        catch (JclException e)
-        {
+        } catch (JclException e) {
             e.printStackTrace();
             throw new AnalyticsMethodLoaderException("The class " + implementingClass +
                     " was not found or does not implement the framework.");
-        }
-        catch (java.lang.NoSuchMethodError error)
-        {
+        } catch (java.lang.NoSuchMethodError error) {
             error.printStackTrace();
             throw new AnalyticsMethodLoaderException("The class " + implementingClass +
                     " does not have an empty constructor.");

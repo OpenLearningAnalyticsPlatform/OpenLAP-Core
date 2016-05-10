@@ -6,9 +6,10 @@ package de.rwthaachen.openlap.analyticsmodules.model;
  * and holds metadata necessary to reference on a Triad
  */
 public class VisualizerReference {
-    long id;
-    String shortName;
-    String visualizationName;
+    long frameworkId;
+    long methodId;
+    String frameworkName;
+    String methodName;
 
     /**
      * Empty constructor
@@ -18,55 +19,94 @@ public class VisualizerReference {
 
     /**
      * Standard Constructor
-     * @param id ID of the Visualizer Library
-     * @param shortName Short Name of the Library used
-     * @param visualizationName Visualizer Name
+     *
+     * @param frameworkId ID of the Visualizer Framework
+     * @param methodId    ID of the Visualizer Method
      */
-    public VisualizerReference(long id, String shortName, String visualizationName) {
-        this.id = id;
-        this.shortName = shortName;
-        this.visualizationName = visualizationName;
+    public VisualizerReference(long frameworkId, long methodId) {
+        this.frameworkId = frameworkId;
+        this.methodId = methodId;
     }
 
     /**
-     * @return ID of the Visualization Library
+     * Standard Constructor
+     *
+     * @param frameworkName Name of the Visualizer Framework
+     * @param methodName    Name of the Visualizer Method
      */
-    public long getId() {
-        return id;
+    public VisualizerReference(String frameworkName, String methodName) {
+        this.frameworkName = frameworkName;
+        this.methodName = methodName;
     }
 
     /**
-     * @param id ID of the Visualization library to be set.
+     * Standard Constructor
+     *
+     * @param frameworkId   ID of the Visualizer Framework
+     * @param methodId      ID of the Visualizer Method
+     * @param frameworkName Name of the Visualizer Framework
+     * @param methodName    Name of the Visualizer Method
      */
-    public void setId(long id) {
-        this.id = id;
+    public VisualizerReference(long frameworkId, long methodId, String frameworkName, String methodName) {
+        this.frameworkId = frameworkId;
+        this.methodId = methodId;
+        this.frameworkName = frameworkName;
+        this.methodName = methodName;
     }
 
     /**
-     * @return Short name of the Visualization Library
+     * @return ID of the Visualization Framework
      */
-    public String getShortName() {
-        return shortName;
+    public long getFrameworkId() {
+        return frameworkId;
     }
 
     /**
-     * @param shortName Short name of the Visualization Lirbary to be set
+     * @param frameworkId ID of the Visualization Framework to be set.
      */
-    public void setShortName(String shortName) {
-        this.shortName = shortName;
+    public void setFrameworkId(long frameworkId) {
+        this.frameworkId = frameworkId;
     }
 
     /**
-     * @return Visualization Library name
+     * @return ID of the Visualization Method
      */
-    public String getVisualizationName() {
-        return visualizationName;
+    public long getMethodId() {
+        return methodId;
     }
 
     /**
-     * @param visualizationName Name of the Visualization Lirbary to be set
+     * @param methodId ID of the Visualization Method to be set.
      */
-    public void setVisualizationName(String visualizationName) {
-        this.visualizationName = visualizationName;
+    public void setMethodId(long methodId) {
+        this.methodId = methodId;
+    }
+
+    /**
+     * @return Name of the Visualization Framework
+     */
+    public String getFrameworkName() {
+        return frameworkName;
+    }
+
+    /**
+     * @param frameworkName Name of the Visualization Framework to be set.
+     */
+    public void setFrameworkName(String frameworkName) {
+        this.frameworkName = frameworkName;
+    }
+
+    /**
+     * @return Name of the Visualization Method
+     */
+    public String getMethodName() {
+        return methodName;
+    }
+
+    /**
+     * @param methodName Name of the Visualization Method to be set.
+     */
+    public void setMethodName(String methodName) {
+        this.methodName = methodName;
     }
 }

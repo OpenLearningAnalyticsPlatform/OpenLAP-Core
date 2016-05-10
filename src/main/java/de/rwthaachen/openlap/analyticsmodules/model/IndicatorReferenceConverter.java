@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.persistence.AttributeConverter;
 import java.io.IOException;
+
 /**
  * An object Mapper for the DataAccessLayer to convert an IndicatorReference sets to a String during persistence
  * operations

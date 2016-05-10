@@ -17,6 +17,7 @@ public class AnalyticsMethodsValidationInformation {
 
     /**
      * Standard constructor.
+     *
      * @param isValid Value for validation.
      * @param message Message of validation.
      */
@@ -55,17 +56,14 @@ public class AnalyticsMethodsValidationInformation {
 
     /**
      * Appends a string to the message field.
+     *
      * @param message String to be appended to the message field.
      * @return New message field.
      */
-    public String appendMessage(String message)
-    {
-        if (message.isEmpty())
-        {
+    public String appendMessage(String message) {
+        if (message.isEmpty()) {
             this.setMessage(message);
-        }
-        else
-        {
+        } else {
             this.message = this.message + "\n" + message;
         }
         return this.message;

@@ -34,25 +34,19 @@ public class DataBaseLoader {
             "development/testManifests/UploadMethodManifestForDevelopment.json";
     private static final String RESOURCE_JAR_UPLOAD_FOR_UPDATING =
             "development/testJars/AnalyticsMethodForDevelopment.jar";
-
-
+    private static final Logger log =
+            LoggerFactory.getLogger(OpenLAPCoreApplication.class);
+    ObjectMapper mapper;
     @Autowired
     private AnalyticsMethodsService analyticsMethodsService;
-
     @Autowired
     private AnalyticsModulesService analyticsModulesService;
-
-    private	static final Logger log	=
-            LoggerFactory.getLogger(OpenLAPCoreApplication.class);
-
-    ObjectMapper mapper;
 
     /**
      * TODO
      */
     @PostConstruct
-    private void initDatabase()
-    {
+    private void initDatabase() {
         mapper = new ObjectMapper();
         AnalyticsMethodMetadata preloadedMetadata;
         Triad preloadedTriad;
@@ -65,6 +59,7 @@ public class DataBaseLoader {
 
     /**
      * TODO
+     *
      * @return
      */
     private AnalyticsMethodMetadata loadAnalyticsMethod() {
@@ -73,7 +68,6 @@ public class DataBaseLoader {
         //InputStream is = getClass().getClassLoader().getResourceAsStream("/development/testManifests/UploadMethodManifestForDevelopment.json");
         URL dirURL = getClass().getClassLoader().getResource(RESOURCE_JAR_UPLOAD_FOR_UPDATING);
         log.info("Started DataBaseLoader initDatabase");
-
 
 
         try {
@@ -86,7 +80,7 @@ public class DataBaseLoader {
             // Make an input stream for the mock
             FileInputStream fi1 = new FileInputStream(file);
 
-            MultipartFile mpf = new MockMultipartFile("jarBundle", file.getName(), "multipart/form-data",fi1);
+            MultipartFile mpf = new MockMultipartFile("jarBundle", file.getName(), "multipart/form-data", fi1);
 
             analyticsMethodsService.uploadAnalyticsMethod(result, mpf);
             log.info("Loaded metadata: " + result.toString());
@@ -101,6 +95,7 @@ public class DataBaseLoader {
 
     /**
      * TODO
+     *
      * @param preloadedMetadata
      * @return
      */
@@ -109,11 +104,10 @@ public class DataBaseLoader {
         // String indicator = "indicator1";
         IndicatorReference indicator = new IndicatorReference(1, "indicator1", "The first indicator ever");
         //String visualization = "visualization1";
-        VisualizerReference visualization = new VisualizerReference(1, "visualization1", "Something made by Bassim");
+        VisualizerReference visualization = new VisualizerReference(1, 1, "visualization1", "Something made by Bassim");
 
         // Save the Triad using the service
-        try
-        {
+        try {
             OLAPPortConfiguration indicatorToMethodMapping = mapper.readValue(
                     getJsonString(JsonGeneratorIndex.OLAPCONFIGURATION_INDICATOR_TO_METHOD),
                     OLAPPortConfiguration.class);
@@ -125,10 +119,7 @@ public class DataBaseLoader {
             Triad result = analyticsModulesService.saveTriad(triad);
             log.info("Loaded Triad: " + result.toString());
             return result;
-        }
-
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.info("DataBaseLoader PostConstruct Failed loading Triad");
             e.printStackTrace();
             return null;
@@ -138,23 +129,22 @@ public class DataBaseLoader {
 
     /**
      * TODO
+     *
      * @param preloadedMetadata
      */
     private void loadAnalyticsGoal(AnalyticsMethodMetadata preloadedMetadata) {
         //Create a AnalyticsGoal
         AnalyticsGoal analyticsGoal = new AnalyticsGoal("AnalyticsGoal1", "Testing Learning Goal", "lechip", false);
-        try{
+        try {
             analyticsGoal = analyticsModulesService.saveAnalyticsGoal(analyticsGoal);
-            analyticsGoal = analyticsModulesService.setAnalyticsGoalActive(analyticsGoal.getId(),true);
+            analyticsGoal = analyticsModulesService.setAnalyticsGoalActive(analyticsGoal.getId(), true);
             analyticsGoal = analyticsModulesService.addAnalyticsMethodToAnalyticsGoal(analyticsGoal.getId(),
                     preloadedMetadata);
             // To test that does not save twice
             analyticsGoal = analyticsModulesService.addAnalyticsMethodToAnalyticsGoal(analyticsGoal.getId(),
                     preloadedMetadata);
             log.info("Loaded AnalyticsGoal: " + analyticsGoal.toString());
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.info("DataBaseLoader PostConstruct Failed loading AnalyticsGoal");
             e.printStackTrace();
         }
@@ -163,12 +153,12 @@ public class DataBaseLoader {
     /**
      * Used to generate a string with the json content of different files. It is done like this because
      * it is not possible to load resources when the postexecute methods are run
+     *
      * @param index an index to the particular JSON string
      * @return a String containing JSON data
      */
     private String getJsonString(JsonGeneratorIndex index) {
-        switch (index)
-        {
+        switch (index) {
             case OLAPCONFIGURATION_INDICATOR_TO_METHOD:
                 return "{" +
                         "  \"mapping\" : [" +
@@ -187,7 +177,7 @@ public class DataBaseLoader {
                         "  ]" +
                         "}";
             case OLAPCONFIGURATION_METHOD_TO_INDICATOR:
-                return  "{" +
+                return "{" +
                         "  \"mapping\" : [" +
                         "    {" +
                         "      \"outputPort\" : {" +
@@ -217,7 +207,7 @@ public class DataBaseLoader {
         }
     }
 
-    private enum JsonGeneratorIndex{
+    private enum JsonGeneratorIndex {
         OLAPCONFIGURATION_INDICATOR_TO_METHOD,
         OLAPCONFIGURATION_METHOD_TO_INDICATOR,
         ANALYTICS_METHOD_MANIFEST

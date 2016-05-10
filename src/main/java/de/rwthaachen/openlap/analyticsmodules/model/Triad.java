@@ -12,29 +12,30 @@ import javax.persistence.*;
  * Indicator to the Analytics Method as well as the one between the Analytics Method to the Visualization
  */
 @Entity
+@Table(name = "Triad")
 public class Triad {
 
     @Id
     @GeneratedValue
     String id;
 
-    @Column(nullable = false,columnDefinition="LONGVARCHAR")
+    @Column(nullable = false, columnDefinition = "LONGVARCHAR")
     @Convert(converter = AnalyticsMethodMetadataConverter.class)
     AnalyticsMethodMetadata analyticsMethodReference;
 
-    @Column(nullable = false,columnDefinition="LONGVARCHAR")
+    @Column(nullable = false, columnDefinition = "LONGVARCHAR")
     @Convert(converter = IndicatorReferenceConverter.class)
     IndicatorReference indicatorReference;
 
-    @Column(nullable = false,columnDefinition="LONGVARCHAR")
+    @Column(nullable = false, columnDefinition = "LONGVARCHAR")
     @Convert(converter = VisualizerReferenceConverter.class)
     VisualizerReference visualizationReference;
 
-    @Column(columnDefinition="LONGVARCHAR")
+    @Column(columnDefinition = "LONGVARCHAR")
     @Convert(converter = OLAPPortConfigurationConverter.class)
     OLAPPortConfiguration indicatorToAnalyticsMethodMapping;
 
-    @Column(columnDefinition="LONGVARCHAR")
+    @Column(columnDefinition = "LONGVARCHAR")
     @Convert(converter = OLAPPortConfigurationConverter.class)
     OLAPPortConfiguration analyticsMethodToVisualizationMapping;
 
@@ -46,15 +47,16 @@ public class Triad {
 
     /**
      * Standard constructor
-     * @param id ID of the Triad
-     * @param indicatorReference An Indicator Reference that corresponds to an Indicator of the Indicator Engine
-     *                           macro component of the OpenLAP.
-     * @param analyticsMethodReference An Analytics Method Reference that corresponds to an Analytics Method metadata of
-     *                                 the Analytics Methods macro component of the OpenLAP.
-     * @param visualizationReference A Visualization Reference that correponds to a Visualization technique of the
-     *                               Visualizer macro component of the OpenLAP.
-     * @param indicatorToAnalyticsMethodMapping The OLAPPortConfiguration between the Indicator and the Analytics Method
-     *                                         of this Triad.
+     *
+     * @param id                                    ID of the Triad
+     * @param indicatorReference                    An Indicator Reference that corresponds to an Indicator of the Indicator Engine
+     *                                              macro component of the OpenLAP.
+     * @param analyticsMethodReference              An Analytics Method Reference that corresponds to an Analytics Method metadata of
+     *                                              the Analytics Methods macro component of the OpenLAP.
+     * @param visualizationReference                A Visualization Reference that correponds to a Visualization technique of the
+     *                                              Visualizer macro component of the OpenLAP.
+     * @param indicatorToAnalyticsMethodMapping     The OLAPPortConfiguration between the Indicator and the Analytics Method
+     *                                              of this Triad.
      * @param analyticsMethodToVisualizationMapping The OLAPPortConfiguration between the Analytics Method and the
      *                                              Visualization of this Triad.
      */
@@ -74,14 +76,15 @@ public class Triad {
 
     /**
      * Standard constructor
-     * @param indicatorReference An Indicator Reference that corresponds to an Indicator of the Indicator Engine
-     *                           macro component of the OpenLAP.
-     * @param analyticsMethodReference An Analytics Method Reference that corresponds to an Analytics Method metadata of
-     *                                 the Analytics Methods macro component of the OpenLAP.
-     * @param visualizationReference A Visualization Reference that correponds to a Visualization technique of the
-     *                               Visualizer macro component of the OpenLAP.
-     * @param indicatorToAnalyticsMethodMapping The OLAPPortConfiguration between the Indicator and the Analytics Method
-     *                                         of this Triad.
+     *
+     * @param indicatorReference                    An Indicator Reference that corresponds to an Indicator of the Indicator Engine
+     *                                              macro component of the OpenLAP.
+     * @param analyticsMethodReference              An Analytics Method Reference that corresponds to an Analytics Method metadata of
+     *                                              the Analytics Methods macro component of the OpenLAP.
+     * @param visualizationReference                A Visualization Reference that correponds to a Visualization technique of the
+     *                                              Visualizer macro component of the OpenLAP.
+     * @param indicatorToAnalyticsMethodMapping     The OLAPPortConfiguration between the Indicator and the Analytics Method
+     *                                              of this Triad.
      * @param analyticsMethodToVisualizationMapping The OLAPPortConfiguration between the Analytics Method and the
      *                                              Visualization of this Triad.
      */
@@ -186,6 +189,7 @@ public class Triad {
 
     /**
      * Updates this object with the information of the Triad passed as a parameter
+     *
      * @param triad with the information to be used to update this object.
      */
     public void updateWithTriad(Triad triad) {
@@ -199,6 +203,7 @@ public class Triad {
     /**
      * Attempts to return a JSON human-readable form representation of this object. If it fails, it defaults to standard
      * JAVA string representation.
+     *
      * @return A string representation of this Object.
      */
     @Override

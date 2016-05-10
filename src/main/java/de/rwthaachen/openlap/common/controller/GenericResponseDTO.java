@@ -10,7 +10,7 @@ public class GenericResponseDTO {
 
     private static final String TIMESTAMP = "timestamp";
     private static final String STATUS = "status";
-    private static final String EXCEPTION= "exception";
+    private static final String EXCEPTION = "exception";
     private static final String ERROR_MESSAGE = "errorMessage";
     private static final String PATH = "path";
     private static final String MESSAGE = "message";

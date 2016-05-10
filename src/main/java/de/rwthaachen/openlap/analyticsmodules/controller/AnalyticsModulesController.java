@@ -34,6 +34,7 @@ public class AnalyticsModulesController {
 
     /**
      * HTTP endpoint handler method to save a Triad.
+     *
      * @param triad to be saved
      * @return JSON representation of the saved Triad with an ID.
      */
@@ -41,14 +42,15 @@ public class AnalyticsModulesController {
             value = "/AnalyticsModules/Triads/",
             method = RequestMethod.POST
     )
-    public @ResponseBody
-    Triad saveTriad(@RequestBody Triad triad)
-    {
+    public
+    @ResponseBody
+    Triad saveTriad(@RequestBody Triad triad) {
         return modulesService.saveTriad(triad);
     }
 
     /**
      * HTTP endpoint handler method to get a Triad by its ID.
+     *
      * @param id of the requested Triad
      * @return JSON representation of the Triad with the requested ID
      */
@@ -56,41 +58,48 @@ public class AnalyticsModulesController {
             value = "/AnalyticsModules/Triads/{id}",
             method = RequestMethod.GET
     )
-    public @ResponseBody Triad getTriadById(@PathVariable String id)
-    {
+    public
+    @ResponseBody
+    Triad getTriadById(@PathVariable String id) {
         return modulesService.getTriadById(id);
     }
 
     /**
      * HTTP endpoint handler method to get all Triads
+     *
      * @return JSON representation of all the Triads
      */
     @RequestMapping(
             value = "/AnalyticsModules/Triads",
             method = RequestMethod.GET
     )
-    public @ResponseBody List<Triad> getAllTriads()
-    {
+    public
+    @ResponseBody
+    List<Triad> getAllTriads() {
         return modulesService.getAllTriads();
     }
 
     /**
      * HTTP endpoint handler method for updating Triad
+     *
      * @param triad Data of the Triad to be updated.
-     * @param id of the Triad to be updated
+     * @param id    of the Triad to be updated
      * @return updated Triad
      */
     @RequestMapping(
             value = "/AnalyticsModules/Triads/{id}",
             method = RequestMethod.PUT
     )
-    public @ResponseBody Triad updateTriad(@RequestBody Triad triad,
-                                           @PathVariable String id){
+    public
+    @ResponseBody
+    Triad updateTriad(@RequestBody Triad triad,
+                      @PathVariable String id) {
         return modulesService.updateTriad(triad, id);
     }
 
     /**
      * HTTP endpoint handler method for deleting Triad
+     *
      * @param id id of the Triad to be deleted
      * @return GenericResponseDTO with deletion confirmation
      */
@@ -98,8 +107,9 @@ public class AnalyticsModulesController {
             value = "/AnalyticsModules/Triads/{id}",
             method = RequestMethod.DELETE
     )
-    public @ResponseBody
-    GenericResponseDTO deleteTriad(@PathVariable String id){
+    public
+    @ResponseBody
+    GenericResponseDTO deleteTriad(@PathVariable String id) {
         modulesService.deleteTriad(id);
         return new GenericResponseDTO(HttpStatus.OK.value(),
                 "Triad with id {" + id + "} deleted");
@@ -111,6 +121,7 @@ public class AnalyticsModulesController {
 
     /**
      * HTTP endpoint handler method to get a AnalyticsGoal by its ID.
+     *
      * @param id of the requested AnalyticsGoal
      * @return JSON representation of the AnalyticsGoal with the requested ID
      */
@@ -118,14 +129,15 @@ public class AnalyticsModulesController {
             value = "/AnalyticsModules/AnalyticsGoals/{id}",
             method = RequestMethod.GET
     )
-    public @ResponseBody
-    AnalyticsGoal getAnalyticsGoalById(@PathVariable String id)
-    {
+    public
+    @ResponseBody
+    AnalyticsGoal getAnalyticsGoalById(@PathVariable String id) {
         return modulesService.getAnalyticsGoalById(id);
     }
 
     /**
      * HTTP endpoint handler method to save a AnalyticsGoal.
+     *
      * @param AnalyticsGoal to be saved
      * @return JSON representation of the saved AnalyticsGoal with an ID.
      */
@@ -133,14 +145,16 @@ public class AnalyticsModulesController {
             value = "/AnalyticsModules/AnalyticsGoals/",
             method = RequestMethod.POST
     )
-    public @ResponseBody AnalyticsGoal saveAnalyticsGoal(@RequestBody AnalyticsGoal AnalyticsGoal)
-    {
+    public
+    @ResponseBody
+    AnalyticsGoal saveAnalyticsGoal(@RequestBody AnalyticsGoal AnalyticsGoal) {
         return modulesService.saveAnalyticsGoal(AnalyticsGoal);
     }
 
     /**
      * HTTP endpoint handler method for Activating/Deactivating a AnalyticsGoal
-     * @param id of the AnalyticsGoal
+     *
+     * @param id     of the AnalyticsGoal
      * @param action "activate" or "deactivate"
      * @return the updated AnalyticsGoal with the sent status
      */
@@ -148,35 +162,35 @@ public class AnalyticsModulesController {
             value = "/AnalyticsModules/AnalyticsGoals/{id}/{action}",
             method = RequestMethod.PUT
     )
-    public @ResponseBody AnalyticsGoal authorizeAnalyticsGoal(@PathVariable String id, @PathVariable String action)
-    {
-        if (action.equals(ANALYTICS_GOAL_ACTION_ACTIVATE))
-        {
+    public
+    @ResponseBody
+    AnalyticsGoal authorizeAnalyticsGoal(@PathVariable String id, @PathVariable String action) {
+        if (action.equals(ANALYTICS_GOAL_ACTION_ACTIVATE)) {
             return modulesService.setAnalyticsGoalActive(id, true);
-        }
-        else if (action.equals(ANALYTICS_GOAL_ACTION_DEACTIVATE))
-        {
+        } else if (action.equals(ANALYTICS_GOAL_ACTION_DEACTIVATE)) {
             return modulesService.setAnalyticsGoalActive(id, false);
-        }
-        else throw new AnalyticsMethodsBadRequestException("Invalid request for Analytics Goal");
+        } else throw new AnalyticsMethodsBadRequestException("Invalid request for Analytics Goal");
     }
 
     /**
      * HTTP endpoint handler method to get all AnalyticsGoals
+     *
      * @return JSON representation of all the AnalyticsGoals
      */
     @RequestMapping(
             value = "/AnalyticsModules/AnalyticsGoals/",
             method = RequestMethod.GET
     )
-    public @ResponseBody List<AnalyticsGoal> getAllAnalyticsGoals()
-    {
+    public
+    @ResponseBody
+    List<AnalyticsGoal> getAllAnalyticsGoals() {
         return modulesService.getAllAnalyticsGoals();
     }
 
     /**
      * HTTP endpoint handler method for attaching an AnalyticsMethod to a AnalyticsGoal
-     * @param AnalyticsGoalId id of the AnalyticsGoal
+     *
+     * @param AnalyticsGoalId         id of the AnalyticsGoal
      * @param analyticsMethodMetadata of the AnalyticsMethod to be related with the AnalyticsGoal
      * @return the AnalyticsGoal with the attached analyticsMethodMetadata
      */
@@ -184,31 +198,36 @@ public class AnalyticsModulesController {
             value = "/AnalyticsModules/AnalyticsGoals/{AnalyticsGoalId}/addAnalyticsMethod",
             method = RequestMethod.PUT
     )
-    public @ResponseBody AnalyticsGoal addAnalyticsMethodToAnalyticsGoal(
+    public
+    @ResponseBody
+    AnalyticsGoal addAnalyticsMethodToAnalyticsGoal(
             @PathVariable String AnalyticsGoalId,
-            @RequestBody AnalyticsMethodMetadata analyticsMethodMetadata)
-    {
+            @RequestBody AnalyticsMethodMetadata analyticsMethodMetadata) {
         return modulesService.addAnalyticsMethodToAnalyticsGoal(AnalyticsGoalId, analyticsMethodMetadata);
     }
 
     /**
      * HTTP endpoint handler method for updating AnalyticsGoal
+     *
      * @param AnalyticsGoal Data of the AnalyticsGoal to be updated. Note that the isActive, id and the AnalyticsMethods
-     *                     will not be updated using this method.
-     * @param id of the AnalyticsGoal to be updated
+     *                      will not be updated using this method.
+     * @param id            of the AnalyticsGoal to be updated
      * @return updated AnalyticsGoal
      */
     @RequestMapping(
             value = "/AnalyticsModules/AnalyticsGoals/{id}",
             method = RequestMethod.PUT
     )
-    public @ResponseBody AnalyticsGoal updateAnalyticsGoal(@RequestBody AnalyticsGoal AnalyticsGoal,
-                                                         @PathVariable String id){
+    public
+    @ResponseBody
+    AnalyticsGoal updateAnalyticsGoal(@RequestBody AnalyticsGoal AnalyticsGoal,
+                                      @PathVariable String id) {
         return modulesService.updateAnalyticsGoal(AnalyticsGoal, id);
     }
 
     /**
      * HTTP endpoint handler method for deleting AnalyticsGoal
+     *
      * @param id id of the AnalyticsGoal to be deleted
      * @return GenericResponseDTO with deletion confirmation
      */
@@ -216,7 +235,9 @@ public class AnalyticsModulesController {
             value = "/AnalyticsModules/AnalyticsGoals/{id}",
             method = RequestMethod.DELETE
     )
-    public @ResponseBody GenericResponseDTO deleteAnalyticsGoal(@PathVariable String id){
+    public
+    @ResponseBody
+    GenericResponseDTO deleteAnalyticsGoal(@PathVariable String id) {
         modulesService.deleteAnalyticsGoal(id);
         return new GenericResponseDTO(HttpStatus.OK.value(),
                 "Analytics Goal with id {" + id + "} deleted");
@@ -224,10 +245,12 @@ public class AnalyticsModulesController {
     //endregion
 
     //region ExceptionHandlers
+
     /**
      * Handler for TriadNotFoundException, AnalyticsMethodsUploadErrorExceptio and AnalyticsGoalNotFoundException.
      * It returns the appropriate HTTP Error code.
-     * @param e exception
+     *
+     * @param e       exception
      * @param request HTTP request
      * @return A GenericResponseDTO with the information about the exception and its cause.
      */
@@ -235,10 +258,10 @@ public class AnalyticsModulesController {
             AnalyticsMethodsUploadErrorException.class,
             AnalyticsGoalNotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public @ResponseBody
+    public
+    @ResponseBody
     GenericResponseDTO handleMethodNotFoundException(Exception e,
-                                                     HttpServletRequest request)
-    {
+                                                     HttpServletRequest request) {
         GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.NOT_FOUND.value(),
                 e.getClass().getName(),
@@ -252,16 +275,17 @@ public class AnalyticsModulesController {
     /**
      * Handler for AnalyticsModulesBadRequestException.
      * It returns the appropriate HTTP Error code.
-     * @param e exception
+     *
+     * @param e       exception
      * @param request HTTP request
      * @return A GenericResponseDTO with the information about the exception and its cause.
      */
     @ExceptionHandler(AnalyticsModulesBadRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public @ResponseBody
+    public
+    @ResponseBody
     GenericResponseDTO handleMethodNotFoundException(AnalyticsModulesBadRequestException e,
-                                                     HttpServletRequest request)
-    {
+                                                     HttpServletRequest request) {
         GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.BAD_REQUEST.value(),
                 e.getClass().getName(),

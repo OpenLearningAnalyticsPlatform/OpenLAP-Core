@@ -13,26 +13,24 @@ import java.util.Set;
  * Analytics Goals are created by any user but must be activated before any Analytics Method can be related to it.
  */
 @Entity
+@Table(name = "Goals")
 public class AnalyticsGoal {
 
+    @Column(columnDefinition = "LONGVARCHAR")
+    @Convert(converter = AnalyticsMethodMetadataSetConverter.class)
+    Set<AnalyticsMethodMetadata> analyticsMethods;
     @Id
     @GeneratedValue
     @Column(name = "LGOAL_ID")
     private String id;
-
     @Column(nullable = false, unique = true)
     private String name;
     @Column(nullable = false)
     private String description;
     @Column(nullable = false)
     private String author;
-
     @Column(nullable = false)
     private boolean isActive;
-
-    @Column(columnDefinition="LONGVARCHAR")
-    @Convert(converter = AnalyticsMethodMetadataSetConverter.class)
-    Set<AnalyticsMethodMetadata> analyticsMethods;
 
     /**
      * Empty constructor
@@ -48,10 +46,11 @@ public class AnalyticsGoal {
 
     /**
      * Standard constructor
-     * @param name Name of the Analytics Goal
+     *
+     * @param name        Name of the Analytics Goal
      * @param description Description of the Analytics Goal
-     * @param author Author of the Analytics Goal
-     * @param isActive True if active, which enables relating Analytis Methods Metadata to it. False otherwise.
+     * @param author      Author of the Analytics Goal
+     * @param isActive    True if active, which enables relating Analytis Methods Metadata to it. False otherwise.
      */
     public AnalyticsGoal(String name, String description, String author, boolean isActive) {
         this.name = name;
@@ -147,6 +146,7 @@ public class AnalyticsGoal {
 
     /**
      * Update this object with the values from another Analytis Goal.
+     *
      * @param analyticsGoal containing the data to be updated.
      */
     public void updateWithAnalyticsGoal(AnalyticsGoal analyticsGoal) {
@@ -158,6 +158,7 @@ public class AnalyticsGoal {
 
     /**
      * Attempts to return a JSON representation of the object, defaults to a string representation otherwise.
+     *
      * @return A JSON text representation of the object.
      */
     @Override

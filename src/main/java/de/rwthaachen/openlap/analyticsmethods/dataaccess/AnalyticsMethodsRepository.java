@@ -10,6 +10,5 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface AnalyticsMethodsRepository
-        extends CrudRepository<AnalyticsMethodMetadata, String>
-{
+        extends CrudRepository<AnalyticsMethodMetadata, String> {
 }

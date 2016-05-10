@@ -31,7 +31,8 @@ public class AnalyticsMethodMetadataSetConverter implements AttributeConverter<S
     @Override
     public Set<AnalyticsMethodMetadata> convertToEntityAttribute(String dbData) {
         try {
-            return mapper.readValue(dbData, new TypeReference<Set<AnalyticsMethodMetadata>>() {});
+            return mapper.readValue(dbData, new TypeReference<Set<AnalyticsMethodMetadata>>() {
+            });
         } catch (IOException e) {
             e.printStackTrace();
             return new LinkedHashSet<AnalyticsMethodMetadata>();

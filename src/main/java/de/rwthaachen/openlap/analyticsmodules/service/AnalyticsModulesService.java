@@ -27,42 +27,40 @@ import java.util.List;
 @Service
 public class AnalyticsModulesService {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(OpenLAPCoreApplication.class);
     @Autowired
     TriadsRepository triadsRepository;
-
     @Autowired
     AnalyticsGoalRepository analyticsGoalRepository;
-
     @Autowired
     AnalyticsMethodsRepository analyticsMethodsRepository;
 
-    private	static	final Logger log =
-            LoggerFactory.getLogger(OpenLAPCoreApplication.class);
-
     //region Triads
+
     /**
      * Saves a Triad with the given configuration (if any) to the Analytics Modules
+     *
      * @param triad with reference to the Indicator, AnalyticsMethod and Visualization as well as the
      *              respective configurations. The AnalyticsMethod must exist.
      * @return the saved Triad
      */
-    public Triad saveTriad(Triad triad) throws AnalyticsMethodNotFoundException{
+    public Triad saveTriad(Triad triad) throws AnalyticsMethodNotFoundException {
         // Check that the Analytics Method exists
-        if (analyticsMethodsRepository.exists(triad.getAnalyticsMethodReference().getId()))
-        {
+        if (analyticsMethodsRepository.exists(triad.getAnalyticsMethodReference().getId())) {
             try {
-            return triadsRepository.save(triad);
-            }catch (DataIntegrityViolationException sqlException){
+                return triadsRepository.save(triad);
+            } catch (DataIntegrityViolationException sqlException) {
                 sqlException.printStackTrace();
                 throw new AnalyticsModulesBadRequestException("Analytics Goal already exists.");
-            } catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
                 throw new AnalyticsModulesBadRequestException(e.getMessage());
             }
         }
         // If the AnalyticsMethod is not found then thrown an exception
-        else{
-            throw new AnalyticsMethodNotFoundException("Metod with id: {"
+        else {
+            throw new AnalyticsMethodNotFoundException("Method with id: {"
                     + triad.getAnalyticsMethodReference()
                     + "} not found.");
         }
@@ -70,17 +68,15 @@ public class AnalyticsModulesService {
 
     /**
      * Get a Triad by it's ID
+     *
      * @param id of the Triad
      * @return the Triad with the specified ID
      */
     public Triad getTriadById(String id) throws TriadNotFoundException {
         Triad result = triadsRepository.findOne(id);
-        if (result == null || id == null)
-        {
+        if (result == null || id == null) {
             throw new TriadNotFoundException("Triad with id: {" + id + "} not found");
-        }
-        else
-        {
+        } else {
             log.info("viewAnalyticsMethod returns " + result.toString());
             return result;
         }
@@ -88,21 +84,23 @@ public class AnalyticsModulesService {
 
     /**
      * Gets all the existing Triads on the system
+     *
      * @return returns an ArrayList with all the existing Triads.
      */
     public List<Triad> getAllTriads() {
         ArrayList<Triad> result = new ArrayList<Triad>();
         // (A :: B) denotes A consumer execute B with the iterator given.
-        triadsRepository.findAll().forEach(result :: add);
+        triadsRepository.findAll().forEach(result::add);
         return result;
     }
 
     /**
      * Delete the specified Triad
+     *
      * @param triadId id of the Triad to be deleted
      */
     public void deleteTriad(String triadId) {
-        if(!triadsRepository.exists(triadId)){
+        if (!triadsRepository.exists(triadId)) {
             throw new TriadNotFoundException("Triad with id = {"
                     + triadId + "} not found.");
         }
@@ -111,20 +109,20 @@ public class AnalyticsModulesService {
 
     /**
      * Update the specified Triad with the specified the data sent
+     *
      * @param triad Data of the Triad to be updated.
-     * @param id of the Triad to be updated
+     * @param id    of the Triad to be updated
      * @return updated Triad
      */
     public Triad updateTriad(Triad triad, String id) {
         Triad responseTriad = triadsRepository.findOne(id);
-        if(responseTriad == null){
+        if (responseTriad == null) {
             throw new AnalyticsModulesBadRequestException("Triad with id = {"
                     + id + "} not found.");
         }
-        if(triad.getAnalyticsMethodReference() == null
+        if (triad.getAnalyticsMethodReference() == null
                 || triad.getIndicatorReference() == null
-                || triad.getVisualizationReference() == null)
-        {
+                || triad.getVisualizationReference() == null) {
             throw new AnalyticsModulesBadRequestException("Input Triad for update is not a valid Triad");
         }
 
@@ -138,17 +136,15 @@ public class AnalyticsModulesService {
 
     /**
      * Gets a AnalyticsGoal by its ID
+     *
      * @param id of the AnalyticsGoal
      * @return the AnalyticsGoal with the specified ID
      */
     public AnalyticsGoal getAnalyticsGoalById(String id) {
         AnalyticsGoal result = analyticsGoalRepository.findOne(id);
-        if (result == null || id == null)
-        {
+        if (result == null || id == null) {
             throw new AnalyticsGoalNotFoundException("AnalyticsGoal with id: {" + id + "} not found");
-        }
-        else
-        {
+        } else {
             log.info("viewAnalyticsMethod returns " + result.toString());
             return result;
         }
@@ -156,18 +152,19 @@ public class AnalyticsModulesService {
 
     /**
      * Creates an inactive AnalyticsGoal with no AnalyticsMethods related to it.
+     *
      * @param analyticsGoal the AnalyticsGoal to be saved
      * @return AnalyticsGoal saved with an ID
      */
     public AnalyticsGoal saveAnalyticsGoal(AnalyticsGoal analyticsGoal) {
         AnalyticsGoal analyticsGoalToSave = new AnalyticsGoal(analyticsGoal.getName(), analyticsGoal.getDescription(),
-                analyticsGoal.getAuthor(),false);
+                analyticsGoal.getAuthor(), false);
         try {
             return analyticsGoalRepository.save(analyticsGoalToSave);
-        }catch (DataIntegrityViolationException sqlException){
+        } catch (DataIntegrityViolationException sqlException) {
             sqlException.printStackTrace();
             throw new AnalyticsModulesBadRequestException("Analytics Goal already exists.");
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             throw new AnalyticsModulesBadRequestException(e.getMessage());
         }
@@ -175,17 +172,19 @@ public class AnalyticsModulesService {
 
     /**
      * Gets all the existing AnalyticsGoals on the system
+     *
      * @return returns an ArrayList with all the existing AnalyticsGoals.
      */
     public List<AnalyticsGoal> getAllAnalyticsGoals() {
         ArrayList<AnalyticsGoal> result = new ArrayList<AnalyticsGoal>();
         // (A :: B) denotes A consumer execute B with the iterator given.
-        analyticsGoalRepository.findAll().forEach(result :: add);
+        analyticsGoalRepository.findAll().forEach(result::add);
         return result;
     }
 
     /**
      * Switches the active field of the AnalyticsGoal, only active AnalyticsGoals can add new AnalyticsMethods
+     *
      * @param id of the AnalyticsGoal to be switched
      * @return the saved AnalyticsGoal with the set active status
      */
@@ -197,26 +196,27 @@ public class AnalyticsModulesService {
 
     /**
      * Attach an AnalyticsMethodMetadata to a AnalyticsGoal
-     * @param AnalyticsGoalId the id of the AnalyticsGoal to attach the AnalyticsMethodMetadata to
+     *
+     * @param AnalyticsGoalId         the id of the AnalyticsGoal to attach the AnalyticsMethodMetadata to
      * @param analyticsMethodMetadata the AnalyticsMethodMetadata to be attached
      * @return the new AnalyticsGoal with the attached AnalyticsMethodMetadata
      */
     public AnalyticsGoal addAnalyticsMethodToAnalyticsGoal(String AnalyticsGoalId,
-                                                          AnalyticsMethodMetadata analyticsMethodMetadata) {
+                                                           AnalyticsMethodMetadata analyticsMethodMetadata) {
         //Check that AnalyticsGoal exists
         //Check that AnalyticsMethod exists
         AnalyticsGoal responseAnalyticsGoal = analyticsGoalRepository.findOne(AnalyticsGoalId);
         AnalyticsMethodMetadata requestedAnalytisMethod =
                 analyticsMethodsRepository.findOne(analyticsMethodMetadata.getId());
-        if(responseAnalyticsGoal == null){
+        if (responseAnalyticsGoal == null) {
             throw new AnalyticsModulesBadRequestException("Analytics Goal with id = {"
                     + AnalyticsGoalId + "} not found.");
         }
-        if ( requestedAnalytisMethod == null){
+        if (requestedAnalytisMethod == null) {
             throw new AnalyticsModulesBadRequestException("Analytics Method with id = {"
                     + analyticsMethodMetadata.getId() + "} not found.");
         }
-        if (!responseAnalyticsGoal.isActive()){
+        if (!responseAnalyticsGoal.isActive()) {
             throw new AnalyticsModulesBadRequestException("Analytics Goal with id = {"
                     + analyticsMethodMetadata.getId() + "} must be active to attach Analytics Methods to it.");
         }
@@ -229,14 +229,15 @@ public class AnalyticsModulesService {
 
     /**
      * Update the specified AnalyticsGoal with the specified the data sent
+     *
      * @param analyticsGoal Data of the AnalyticsGoal to be updated. Note that the isActive, id and the AnalyticsMethods
-     *                     will not be updated using this method.
-     * @param id of the AnalyticsGoal to be updated
+     *                      will not be updated using this method.
+     * @param id            of the AnalyticsGoal to be updated
      * @return updated AnalyticsGoal
      */
     public AnalyticsGoal updateAnalyticsGoal(AnalyticsGoal analyticsGoal, String id) {
         AnalyticsGoal responseAnalyticsGoal = analyticsGoalRepository.findOne(id);
-        if(responseAnalyticsGoal == null){
+        if (responseAnalyticsGoal == null) {
             throw new AnalyticsGoalNotFoundException("Analytics Goal with id = {"
                     + id + "} not found.");
         }
@@ -246,10 +247,11 @@ public class AnalyticsModulesService {
 
     /**
      * Delete the specified AnalyticsGoal
+     *
      * @param AnalyticsGoalId id of the AnalyticsGoal to be deleted
      */
     public void deleteAnalyticsGoal(String AnalyticsGoalId) {
-        if(!analyticsGoalRepository.exists(AnalyticsGoalId)){
+        if (!analyticsGoalRepository.exists(AnalyticsGoalId)) {
             throw new AnalyticsGoalNotFoundException("Analytics Goal with id = {"
                     + AnalyticsGoalId + "} not found.");
         }

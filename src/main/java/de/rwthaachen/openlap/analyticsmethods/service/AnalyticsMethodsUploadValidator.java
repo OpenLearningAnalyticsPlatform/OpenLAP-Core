@@ -18,39 +18,37 @@ import java.util.regex.Pattern;
 @Service
 public class AnalyticsMethodsUploadValidator {
 
-    private AnalyticsMethodsClassPathLoader classPathLoader;
-
-    @Value("${pmmlxsd}")
-    private String pmmlXsdUrl;
-
     protected static final Logger log =
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
+    private AnalyticsMethodsClassPathLoader classPathLoader;
+    @Value("${pmmlxsd}")
+    private String pmmlXsdUrl;
 
     /**
      * Validates the JAR so it contains the class specified on the AnalyticsMethodsMetadata field that describes the
      * implementing class. Additionally checks for the JAR containing valid files and, if provided, the validity of
      * the PMML file of the AnalyticsMethod.
-     * @param methodMetadata The AnalyticsMethodMetadata that describes the location of the JAR file and
-     *                       class implementing the OpenLAP-AnalyticsMethodsFramework.
+     *
+     * @param methodMetadata             The AnalyticsMethodMetadata that describes the location of the JAR file and
+     *                                   class implementing the OpenLAP-AnalyticsMethodsFramework.
      * @param analyticsMethodsJarsFolder The location where the JAR file resides.
      * @return A AnalyticsMethodsValidationInformation that encapsulates the validation information of the
      * Analytics Method uploaded
      */
     public AnalyticsMethodsValidationInformation validatemethod
-            (AnalyticsMethodMetadata methodMetadata, String analyticsMethodsJarsFolder) {
+    (AnalyticsMethodMetadata methodMetadata, String analyticsMethodsJarsFolder) {
 
         AnalyticsMethodsValidationInformation validationInformation = new AnalyticsMethodsValidationInformation();
         classPathLoader = new AnalyticsMethodsClassPathLoader(analyticsMethodsJarsFolder);
 
         // Validate non empty fields of the metadata
         if (methodMetadata.getName().isEmpty()
-                        || methodMetadata.getImplementingClass().isEmpty()
-                        || methodMetadata.getCreator().isEmpty()
-                        || methodMetadata.getDescription().isEmpty()
-                        || methodMetadata.getFilename().isEmpty()
-                        || !validateFilename(methodMetadata.getFilename())
-                )
-        {
+                || methodMetadata.getImplementingClass().isEmpty()
+                || methodMetadata.getCreator().isEmpty()
+                || methodMetadata.getDescription().isEmpty()
+                || methodMetadata.getFilename().isEmpty()
+                || !validateFilename(methodMetadata.getFilename())
+                ) {
             validationInformation.setValid(false);
             validationInformation.setMessage("Metadata Name, Implementing Class, "
                     + "Author and Description must have content "
@@ -64,10 +62,9 @@ public class AnalyticsMethodsUploadValidator {
             AnalyticsMethod method = classPathLoader.loadClass(methodMetadata.getImplementingClass());
             // Validate pmml if the method has a PMML
             validationInformation.setValid(true);
-            if(method.hasPMML())
-            {
+            if (method.hasPMML()) {
                 SimpleXmlSchemaValidator
-                        .validateXML(validationInformation, method.getPMMLInputStream(),pmmlXsdUrl);
+                        .validateXML(validationInformation, method.getPMMLInputStream(), pmmlXsdUrl);
             }
             log.info("Validation successful: " + methodMetadata.getImplementingClass());
             log.info("OLAPInputOf the method: " + method.getInputPorts());
@@ -82,10 +79,11 @@ public class AnalyticsMethodsUploadValidator {
 
     /**
      * Utility method to check only ASCII Alphanumeric filenames
+     *
      * @param input The filename
      * @return true if the filename is ASCII Alphanumeric, false otherwise
      */
-    private boolean validateFilename(String input){
+    private boolean validateFilename(String input) {
         final Pattern pattern = Pattern.compile("^[a-zA-Z0-9]*$");
         if (!pattern.matcher(input).matches()) return false;
         return true;

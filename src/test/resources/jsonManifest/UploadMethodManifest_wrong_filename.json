@@ -1,7 +1,7 @@
 {
-  "name":"AnalyticsMethodImplementation",
-  "filename":"AnalyticsMethod Implementation",
-  "creator":"lechip",
-  "description":"A Method",
+  "name": "AnalyticsMethodImplementation",
+  "filename": "AnalyticsMethod Implementation",
+  "creator": "lechip",
+  "description": "A Method",
   "implementingClass": "main.AnalyticsMethodImplementation"
 }

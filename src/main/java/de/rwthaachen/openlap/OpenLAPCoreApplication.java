@@ -16,6 +16,7 @@ public class OpenLAPCoreApplication {
 
     /**
      * Start the application
+     *
      * @param args
      */
     public static void main(String[] args) {

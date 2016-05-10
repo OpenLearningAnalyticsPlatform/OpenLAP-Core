@@ -21,9 +21,10 @@ public class FileHandler {
 
     /**
      * Saves a file in the specified location.
-     * @param fileToSave The File Data to be saved.
+     *
+     * @param fileToSave   The File Data to be saved.
      * @param savingFolder Path of the folder to save the file.
-     * @param fileName Name of the File.
+     * @param fileName     Name of the File.
      * @throws IOException
      * @throws SecurityException
      */
@@ -49,25 +50,28 @@ public class FileHandler {
 
     /**
      * Deletes a file.
+     *
      * @param deletionFolder Path of the folder containing the file to be deleted.
-     * @param fileName Filename to be deleted.
+     * @param fileName       Filename to be deleted.
      */
-    public void deleteFile(String deletionFolder, String fileName){
-        File fileToDelete= new File(deletionFolder + fileName);
+    public void deleteFile(String deletionFolder, String fileName) {
+        File fileToDelete = new File(deletionFolder + fileName);
         fileToDelete.delete();
         log.info("Deleted file: " + deletionFolder + fileName);
     }
 
     /**
      * Deletes an entire folder
+     *
      * @param deletionFolder Folder to be deleted
      */
-    public void deleteFolder(String deletionFolder){
-        deleteFile(deletionFolder,"");
+    public void deleteFolder(String deletionFolder) {
+        deleteFile(deletionFolder, "");
     }
 
     /**
      * Creates a folder if the folder does not exists already.
+     *
      * @param savingFolder Path of the folder to create.
      * @throws SecurityException
      */
@@ -83,7 +87,7 @@ public class FileHandler {
             theDir.mkdir();
             result = true;
 
-            if(result) {
+            if (result) {
                 log.info("DIR created: " + savingFolder);
             }
         }

@@ -63,35 +63,28 @@ public class AnalyticsModulesApplicationTests {
             "jsonManifest/UploadMethodManifestForTesting.json";
 
 
-    private	static final Logger log =
+    private static final Logger log =
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
-
-    // Won't work Test without the WebAppConfiguration
-    @Autowired
-    private WebApplicationContext wac;
-
-    @Autowired
-    private AnalyticsModulesController controller;
-
-    @Autowired
-    private AnalyticsGoalRepository analyticsGoalRepository;
-
-    @Autowired
-    private TriadsRepository triadsRepository;
-
-    @Autowired
-    private AnalyticsMethodsRepository analyticsMethodsRepository;
-
-    private MockMvc mockMvc;
-
     @Value("${analyticsMethodsJarsFolder}")
     String analyticsMethodsJarsFolder;
     String testingAnalyticsGoalId;
     String testingTriadId;
     String testingMethodId;
+    // Won't work Test without the WebAppConfiguration
+    @Autowired
+    private WebApplicationContext wac;
+    @Autowired
+    private AnalyticsModulesController controller;
+    @Autowired
+    private AnalyticsGoalRepository analyticsGoalRepository;
+    @Autowired
+    private TriadsRepository triadsRepository;
+    @Autowired
+    private AnalyticsMethodsRepository analyticsMethodsRepository;
+    private MockMvc mockMvc;
 
     @Before
-    public void setUp() throws Exception{
+    public void setUp() throws Exception {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
         //Create a Method to test
         saveTestingMethod();
@@ -100,7 +93,7 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @After
-    public void cleanUp() throws Exception{
+    public void cleanUp() throws Exception {
         // Delete Jar folder
         deleteFolder(analyticsMethodsJarsFolder);
         analyticsMethodsRepository.deleteAll();
@@ -111,11 +104,11 @@ public class AnalyticsModulesApplicationTests {
     //region Triads
 
     @Test
-    public void saveTriadTest() throws Exception{
+    public void saveTriadTest() throws Exception {
         //Test with valid Triad
         ObjectMapper mapper = new ObjectMapper();
         //Get the AnalyticsMethod
-        AnalyticsMethodMetadata analyticsMethodForTesting =  analyticsMethodsRepository.findOne(testingMethodId);
+        AnalyticsMethodMetadata analyticsMethodForTesting = analyticsMethodsRepository.findOne(testingMethodId);
         //Create a Triad
         OLAPPortConfiguration config1 =
                 mapper.readValue(getJsonString(JsonGeneratorIndex.OLAPCONFIGURATION_INDICATOR_TO_METHOD),
@@ -125,9 +118,9 @@ public class AnalyticsModulesApplicationTests {
                         OLAPPortConfiguration.class);
         Triad triadForTesting = new Triad
                 (
-                        new IndicatorReference(1,"IndicatorInTest","An indicator"),
+                        new IndicatorReference(1, "IndicatorInTest", "An indicator"),
                         analyticsMethodForTesting,
-                        new VisualizerReference(1,"VisualizerInTest","A Visualization"),
+                        new VisualizerReference(1, 1, "VisualizerFramework", "VisualizerMethod"),
                         config1,
                         config2
                 );
@@ -150,11 +143,11 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void getTriadByIdTest() throws Exception{
+    public void getTriadByIdTest() throws Exception {
         MvcResult result;
 
         //Test with get a valid Triad
-        result = mockMvc.perform(get("/AnalyticsModules/Triads/"+testingTriadId))
+        result = mockMvc.perform(get("/AnalyticsModules/Triads/" + testingTriadId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testingTriadId))
                 .andExpect(jsonPath("$.indicatorReference").exists())
@@ -173,7 +166,7 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void getAllTriadsTest() throws Exception{
+    public void getAllTriadsTest() throws Exception {
         MvcResult result;
         // Test getting all Triads
         result = mockMvc.perform(get("/AnalyticsModules/Triads/"))
@@ -188,10 +181,10 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void updateTriadTest() throws Exception{
+    public void updateTriadTest() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         //Get the AnalyticsMethod
-        AnalyticsMethodMetadata analyticsMethodForTesting =  analyticsMethodsRepository.findOne(testingMethodId);
+        AnalyticsMethodMetadata analyticsMethodForTesting = analyticsMethodsRepository.findOne(testingMethodId);
         analyticsMethodForTesting.setDescription("updated");
         //Create a Triad
         OLAPPortConfiguration config1 =
@@ -202,9 +195,9 @@ public class AnalyticsModulesApplicationTests {
                         OLAPPortConfiguration.class);
         Triad triadForTesting = new Triad
                 (
-                        new IndicatorReference(1,"IndicatorInTestUpdate","An indicator"),
+                        new IndicatorReference(1, "IndicatorInTestUpdate", "An indicator"),
                         analyticsMethodForTesting,
-                        new VisualizerReference(1,"VisualizerInTestUpdate","A Visualization"),
+                        new VisualizerReference(1, 1, "VisualizerFrameworkUpdate", "VisualizerMethodUpdate"),
                         config1,
                         config2
                 );
@@ -238,7 +231,7 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void deleteTriadTest() throws Exception{
+    public void deleteTriadTest() throws Exception {
         MvcResult result;
 
         // Test deleting invalid Triad
@@ -248,7 +241,7 @@ public class AnalyticsModulesApplicationTests {
         log.info("TEST - Delete wrong Triad response content: " + result.getResponse().getContentAsString());
 
         // Test deleting existing Triad
-        result = mockMvc.perform(delete("/AnalyticsModules/Triads/"+testingTriadId))
+        result = mockMvc.perform(delete("/AnalyticsModules/Triads/" + testingTriadId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$..status").value(200))
                 .andExpect(jsonPath("$..message").value("Triad with id {" + testingTriadId + "} deleted"))
@@ -261,10 +254,10 @@ public class AnalyticsModulesApplicationTests {
 
     //region AnalyticsGoals
     @Test
-    public void getAnalyticsGoalByIdTest() throws Exception{
+    public void getAnalyticsGoalByIdTest() throws Exception {
         MvcResult result;
         // Test getting valid AnalyticsGoal
-        result = mockMvc.perform(get("/AnalyticsModules/AnalyticsGoals/"+testingAnalyticsGoalId))
+        result = mockMvc.perform(get("/AnalyticsModules/AnalyticsGoals/" + testingAnalyticsGoalId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testingAnalyticsGoalId))
                 .andExpect(jsonPath("$.name").exists())
@@ -281,7 +274,7 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void saveAnalyticsGoalTest() throws Exception{
+    public void saveAnalyticsGoalTest() throws Exception {
         // Test creating valid AnalyticsGoal
         // Create the AnalyticsGoal
         AnalyticsGoal testAnalyticsGoal = new AnalyticsGoal("Test AnalyticsGoal 2", "A Analytics Goal", "lechip", true);
@@ -311,7 +304,7 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void authorizeAnalyticsGoalTest() throws Exception{
+    public void authorizeAnalyticsGoalTest() throws Exception {
         MvcResult result;
         // Test approving a valid AnalyticsGoal
         result = mockMvc.perform(put("/AnalyticsModules/AnalyticsGoals/" + testingAnalyticsGoalId + "/activate"))
@@ -341,7 +334,7 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void getAllAnalyticsGoalsTest() throws Exception{
+    public void getAllAnalyticsGoalsTest() throws Exception {
         // Test
         MvcResult result;
         result = mockMvc.perform(get("/AnalyticsModules/AnalyticsGoals/"))
@@ -356,7 +349,7 @@ public class AnalyticsModulesApplicationTests {
 
 
     @Test
-    public void addAnalyticsMethodToAnalyticsGoalTest() throws Exception{
+    public void addAnalyticsMethodToAnalyticsGoalTest() throws Exception {
         MvcResult result;
         // Test linking exsiting AnalyticsMethod to exsiting but not approved AnalyticsGoal
         AnalyticsMethodMetadata methodMetadata = analyticsMethodsRepository.findOne(testingMethodId);
@@ -397,7 +390,7 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void updateAnalyticsGoalTest() throws Exception{
+    public void updateAnalyticsGoalTest() throws Exception {
         //Create the AnalyticsGoal
         AnalyticsGoal testAnalyticsGoal = new AnalyticsGoal("Updated", "Updated", "Updated", true);
         //Put the AnalyticsGoal as a String
@@ -428,7 +421,7 @@ public class AnalyticsModulesApplicationTests {
     }
 
     @Test
-    public void deleteAnalyticsGoalTest() throws Exception{
+    public void deleteAnalyticsGoalTest() throws Exception {
         MvcResult result;
 
         // Test deleting existing AnalyticsGoal
@@ -438,7 +431,7 @@ public class AnalyticsModulesApplicationTests {
         log.info("TEST - Delete wrong Goal response content: " + result.getResponse().getContentAsString());
 
         // Test deleting invalid AnalyticsGoal
-        result = mockMvc.perform(delete("/AnalyticsModules/AnalyticsGoals/"+testingTriadId))
+        result = mockMvc.perform(delete("/AnalyticsModules/AnalyticsGoals/" + testingTriadId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$..status").value(200))
                 .andExpect(jsonPath("$..message").value("Analytics Goal with id {" + testingTriadId + "} deleted"))
@@ -461,7 +454,7 @@ public class AnalyticsModulesApplicationTests {
         }
     }
 
-    private void saveTestingMethod() throws Exception{
+    private void saveTestingMethod() throws Exception {
         // Test with jar that implements the framework correctly
         MockMultipartFile fstmp = prepareMultiPartFile(RESOURCE_JAR_TEST_METHOD);
         String jsonTxt1 = prepareJsonString(RESOURCE_JSON_MANIFEST_TEST_METHOD);
@@ -469,7 +462,7 @@ public class AnalyticsModulesApplicationTests {
                 (
                         MockMvcRequestBuilders.fileUpload("/AnalyticsMethods")
                                 .file(fstmp)
-                                .param("methodMetadata",jsonTxt1)
+                                .param("methodMetadata", jsonTxt1)
                                 .contentType(MediaType.MULTIPART_FORM_DATA)
                                 .accept(MediaType.APPLICATION_JSON)
                 )
@@ -481,7 +474,7 @@ public class AnalyticsModulesApplicationTests {
         log.info("TEST SETUP - AnalyticsMethod id: " + testingMethodId);
     }
 
-    private void saveTestingAnalyticsGoal() throws Exception{
+    private void saveTestingAnalyticsGoal() throws Exception {
         //Create the AnalyticsGoal
         AnalyticsGoal testAnalyticsGoal = new AnalyticsGoal("Test AnalyticsGoal", "A Analytics Goal", "lechip", true);
         //Put the AnalyticsGoal as a String
@@ -489,7 +482,7 @@ public class AnalyticsModulesApplicationTests {
         MvcResult result = mockMvc.perform
                 (
                         post("/AnalyticsModules/AnalyticsGoals/")
-                        .contentType(MediaType.APPLICATION_JSON).content(analyticsGoalAsJsonString)
+                                .contentType(MediaType.APPLICATION_JSON).content(analyticsGoalAsJsonString)
                 )
                 .andExpect(status().isOk())
                 .andReturn();
@@ -498,10 +491,10 @@ public class AnalyticsModulesApplicationTests {
         log.info("TEST SETUP - AnalyticsGoal id: " + testingAnalyticsGoalId);
     }
 
-    private void saveTestingTriad() throws Exception{
+    private void saveTestingTriad() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         //Get the AnalyticsMethod
-        AnalyticsMethodMetadata analyticsMethodForTesting =  analyticsMethodsRepository.findOne(testingMethodId);
+        AnalyticsMethodMetadata analyticsMethodForTesting = analyticsMethodsRepository.findOne(testingMethodId);
         //Create a Triad
         OLAPPortConfiguration config1 =
                 mapper.readValue(getJsonString(JsonGeneratorIndex.OLAPCONFIGURATION_INDICATOR_TO_METHOD),
@@ -511,9 +504,9 @@ public class AnalyticsModulesApplicationTests {
                         OLAPPortConfiguration.class);
         Triad triadForTesting = new Triad
                 (
-                        new IndicatorReference(1,"Indicator1","An indicator"),
+                        new IndicatorReference(1, "Indicator1", "An indicator"),
                         analyticsMethodForTesting,
-                        new VisualizerReference(1,"Visualizer1","A Visualization"),
+                        new VisualizerReference(1, 1, "Google Chats", "Bar Chart"),
                         config1,
                         config2
                 );
@@ -534,6 +527,7 @@ public class AnalyticsModulesApplicationTests {
 
     /**
      * Helper method to prepare a String Test with the JSON of a resource file
+     *
      * @param resourceJsonUploadManifest the complete filepath of the resource json
      * @return a String Test with the Json read from the resource json file
      * @throws Exception
@@ -545,6 +539,7 @@ public class AnalyticsModulesApplicationTests {
 
     /**
      * Helper method to prepare a MockMultipartFile Test with the content of a file in the resource folder
+     *
      * @param resourceJarUpload the complete filepath of the resource jar file
      * @return a MockMultipartFile Test with the content of the resource jar file
      * @throws Exception
@@ -557,23 +552,23 @@ public class AnalyticsModulesApplicationTests {
         File file = new File(dirURL.toURI());
         // Check file content
         log.info("TEST SETUP - File check: isFile:" + file.isFile()
-                + ",  fileName: " +file.getName()
+                + ",  fileName: " + file.getName()
                 + ",  exists: " + file.exists());
         // Make an input stream for the mock
         FileInputStream fi1 = new FileInputStream(file);
         // Create a mock
-        return new MockMultipartFile("jarBundle", file.getName(), "multipart/form-data",fi1);
+        return new MockMultipartFile("jarBundle", file.getName(), "multipart/form-data", fi1);
     }
 
     /**
      * Used to generate a string with the json content of different files. It is done like this because
      * it is not possible to load resources when the postexecute methods are run
+     *
      * @param index an index to the particular JSON string
      * @return a String containing JSON data
      */
     private String getJsonString(JsonGeneratorIndex index) {
-        switch (index)
-        {
+        switch (index) {
             case OLAPCONFIGURATION_INDICATOR_TO_METHOD:
                 return "{" +
                         "  \"mapping\" : [" +
@@ -592,7 +587,7 @@ public class AnalyticsModulesApplicationTests {
                         "  ]" +
                         "}";
             case OLAPCONFIGURATION_METHOD_TO_INDICATOR:
-                return  "{" +
+                return "{" +
                         "  \"mapping\" : [" +
                         "    {" +
                         "      \"outputPort\" : {" +
@@ -622,7 +617,7 @@ public class AnalyticsModulesApplicationTests {
         }
     }
 
-    private enum JsonGeneratorIndex{
+    private enum JsonGeneratorIndex {
         OLAPCONFIGURATION_INDICATOR_TO_METHOD,
         OLAPCONFIGURATION_METHOD_TO_INDICATOR,
         ANALYTICS_METHOD_MANIFEST

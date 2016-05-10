@@ -19,16 +19,16 @@ public class SimpleXmlSchemaValidator {
 
     /**
      * Validates an XML in an InputStream against an XSD.
+     *
      * @param validationInformation Object to return the information of the validity of the XML.
-     * @param streamXmlToCheck Stream with the XML to be validated.
-     * @param xsdUrl A String with the URL of the XSD to validate the XML with.
+     * @param streamXmlToCheck      Stream with the XML to be validated.
+     * @param xsdUrl                A String with the URL of the XSD to validate the XML with.
      * @return True if the XML is valid according to the XSD, false otherwise.
      */
     public static boolean validateXML(AnalyticsMethodsValidationInformation validationInformation,
-                                      InputStream streamXmlToCheck, String xsdUrl)
-    {
+                                      InputStream streamXmlToCheck, String xsdUrl) {
         URL schemaFile;
-        Source xmlFile= new StreamSource(streamXmlToCheck);
+        Source xmlFile = new StreamSource(streamXmlToCheck);
         try {
             schemaFile = new URL(xsdUrl);
             SchemaFactory schemaFactory = SchemaFactory

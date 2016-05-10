@@ -18,8 +18,9 @@ public class IndicatorReference {
 
     /**
      * Standard Constructor
-     * @param id ID of the Indicator
-     * @param shortName Short Name of the Indicator
+     *
+     * @param id            ID of the Indicator
+     * @param shortName     Short Name of the Indicator
      * @param indicatorName Name of the Indicator
      */
     public IndicatorReference(long id, String shortName, String indicatorName) {

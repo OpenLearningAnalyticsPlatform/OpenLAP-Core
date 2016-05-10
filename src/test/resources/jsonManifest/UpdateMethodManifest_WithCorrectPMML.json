@@ -1,7 +1,7 @@
 {
-  "name":"AnalyticsMethodWithValidPMML",
-  "filename":"AnalyticsMethodWithValidPMML",
-  "creator":"lechip",
-  "description":"A Method",
+  "name": "AnalyticsMethodWithValidPMML",
+  "filename": "AnalyticsMethodWithValidPMML",
+  "creator": "lechip",
+  "description": "A Method",
   "implementingClass": "main.AnalyticsMethodWithValidPMML"
 }

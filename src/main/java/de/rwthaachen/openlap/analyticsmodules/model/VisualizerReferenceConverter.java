@@ -12,6 +12,7 @@ import java.io.IOException;
  */
 public class VisualizerReferenceConverter implements AttributeConverter<VisualizerReference, String> {
     ObjectMapper mapper = new ObjectMapper();
+
     @Override
     public String convertToDatabaseColumn(VisualizerReference attribute) {
         try {

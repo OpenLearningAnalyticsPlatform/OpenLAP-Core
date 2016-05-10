@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
  * Custom Exception to be thrown whenever the AnalyticsGoal is not found.
  */
 public class AnalyticsGoalNotFoundException extends RuntimeException {
-    private	static	final Logger log =
+    private static final Logger log =
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     public AnalyticsGoalNotFoundException(String message) {

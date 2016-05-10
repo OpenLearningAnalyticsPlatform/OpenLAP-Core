@@ -15,24 +15,24 @@ import javax.persistence.*;
  */
 
 @Entity
-@Table(name="AnalyticsMethodMetadata")
-public class AnalyticsMethodMetadata implements Cloneable{
+@Table(name = "AnalyticsMethodMetadata")
+public class AnalyticsMethodMetadata implements Cloneable {
 
     @Id
     @GeneratedValue
     @Column(name = "METHODMETADATA_ID")
     String id;
-    @Column(unique=true, nullable=false)
+    @Column(unique = true, nullable = false)
     String name;
     @Column(nullable = false)
     String creator;
     @Column(nullable = false)
     String description;
-    @Column(unique=true, nullable=false)
+    @Column(unique = true, nullable = false)
     String implementingClass;
     @Column(nullable = false)
     String binariesLocation;
-    @Column(unique=true, nullable=false)
+    @Column(unique = true, nullable = false)
     String filename;
 
     /**
@@ -49,11 +49,12 @@ public class AnalyticsMethodMetadata implements Cloneable{
 
     /**
      * Standard constructor
-     * @param name Name of the Analytics Method
-     * @param creator Creator of te Analytics Method
-     * @param description Short description of the Analytisc Method
+     *
+     * @param name              Name of the Analytics Method
+     * @param creator           Creator of te Analytics Method
+     * @param description       Short description of the Analytisc Method
      * @param implementingClass Class that implements the OpenLAP-AnalyticsFramework
-     * @param binariesLocation Path of the server where the JAR files of the Analytics Method are located.
+     * @param binariesLocation  Path of the server where the JAR files of the Analytics Method are located.
      */
     public AnalyticsMethodMetadata(String name, String creator, String description,
                                    String implementingClass, String binariesLocation) {
@@ -66,9 +67,10 @@ public class AnalyticsMethodMetadata implements Cloneable{
 
     /**
      * Standard constructor
-     * @param name Name of the Analytics Method
-     * @param creator Creator of te Analytics Method
-     * @param description Short description of the Analytisc Method
+     *
+     * @param name             Name of the Analytics Method
+     * @param creator          Creator of te Analytics Method
+     * @param description      Short description of the Analytisc Method
      * @param binariesLocation Path of the server where the JAR files of the Analytics Method are located.
      */
     public AnalyticsMethodMetadata(String name, String creator, String description, String binariesLocation) {
@@ -189,6 +191,7 @@ public class AnalyticsMethodMetadata implements Cloneable{
 
     /**
      * Cloning Method for the AnalyticsMethod Metadata.
+     *
      * @return An Object with the properties of this AnalyticsMethodMetadata
      * @throws CloneNotSupportedException
      */
@@ -198,6 +201,7 @@ public class AnalyticsMethodMetadata implements Cloneable{
 
     /**
      * Use another AnalyticsMethodMetadata to update this object
+     *
      * @param updatedMetadata
      */
     public void updateWithMetadata(AnalyticsMethodMetadata updatedMetadata) {

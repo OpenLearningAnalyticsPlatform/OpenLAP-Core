@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
  * Custom Exception to be thrown whenever the Triad is not found.
  */
 public class TriadNotFoundException extends RuntimeException {
-    private	static	final Logger log =
+    private static final Logger log =
             LoggerFactory.getLogger(OpenLAPCoreApplication.class);
 
     public TriadNotFoundException(String message) {

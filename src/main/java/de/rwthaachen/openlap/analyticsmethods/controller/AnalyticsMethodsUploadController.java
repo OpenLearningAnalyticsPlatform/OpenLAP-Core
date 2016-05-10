@@ -33,20 +33,22 @@ public class AnalyticsMethodsUploadController {
 
     /**
      * HTTP endpoint handler method that lists all the Metadata of the  AnalyticsMethods available
+     *
      * @return A List of the available AnalyticsMethods
      */
     @RequestMapping(
             value = "/AnalyticsMethods",
             method = RequestMethod.GET
     )
-    public @ResponseBody
-    List<AnalyticsMethodMetadata> viewAllAnalyticsMethods()
-    {
+    public
+    @ResponseBody
+    List<AnalyticsMethodMetadata> viewAllAnalyticsMethods() {
         return analyticsMethodsService.viewAllAnalyticsMethods();
     }
 
     /**
      * HTTP endpoint handler method that returns the Metadata of the Analytics Method of the specified ID
+     *
      * @param id ID of the AnalyticsMethod to view
      * @return The AnalyticsMethod with Metadata of the specified ID
      */
@@ -55,15 +57,17 @@ public class AnalyticsMethodsUploadController {
                     value = "/AnalyticsMethods/{id}",
                     method = RequestMethod.GET
             )
-    public @ResponseBody AnalyticsMethodMetadata viewAnalyticsMethod(@PathVariable String id)
-    {
+    public
+    @ResponseBody
+    AnalyticsMethodMetadata viewAnalyticsMethod(@PathVariable String id) {
         return analyticsMethodsService.viewAnalyticsMethod(id);
     }
 
     /**
      * HTTP endpoint handler method that enables to post an AnalyticsMethod to the Server to be validated and
      * made available for usage.
-     * @param jarBundle The JAR file with the implementation of the AnalyticsMethod
+     *
+     * @param jarBundle          The JAR file with the implementation of the AnalyticsMethod
      * @param methodMetadataText A string with the JSON of the metadata to upload as manifest of the AnalyticsMethod
      * @return The Metadata of the uploaded AnalyticsMethod if deemed valid by the OpenLAP
      */
@@ -72,12 +76,13 @@ public class AnalyticsMethodsUploadController {
                     value = "/AnalyticsMethods",
                     method = RequestMethod.POST
             )
-    public @ResponseBody AnalyticsMethodMetadata uploadAnalyticsMethod
+    public
+    @ResponseBody
+    AnalyticsMethodMetadata uploadAnalyticsMethod
     (
-            @RequestParam ("jarBundle") MultipartFile jarBundle,
-            @RequestParam ("methodMetadata") String methodMetadataText
-    )
-    {
+            @RequestParam("jarBundle") MultipartFile jarBundle,
+            @RequestParam("methodMetadata") String methodMetadataText
+    ) {
         ObjectMapper mapper = new ObjectMapper();
         AnalyticsMethodMetadata methodMetadata = null;
 
@@ -97,9 +102,10 @@ public class AnalyticsMethodsUploadController {
     /**
      * HTTP endpoint handler method that allows to update an AnalyticsMethod to the Server to be validated and made
      * available for usage.
+     *
      * @param methodMetadataText A string with the JSON of the metadata to upload as manifest of the AnalyticsMethod
-     * @param jarBundle The JAR file with the implementation of the AnalyticsMethod
-     * @param id ID of the AnalyticsMethod Metadata that is to be updated.
+     * @param jarBundle          The JAR file with the implementation of the AnalyticsMethod
+     * @param id                 ID of the AnalyticsMethod Metadata that is to be updated.
      * @return The Metadata of the uploaded AnalyticsMethod if deemed valid by the OpenLAP
      */
     @RequestMapping
@@ -107,13 +113,14 @@ public class AnalyticsMethodsUploadController {
                     value = "/AnalyticsMethods/{id}",
                     method = RequestMethod.POST
             )
-    public @ResponseBody  AnalyticsMethodMetadata updateAnalyticsMethod
-            (
-                    @RequestParam("methodMetadata") String methodMetadataText,
-                    @RequestParam("jarBundle") MultipartFile jarBundle,
-                    @PathVariable String id
-            )
-    {
+    public
+    @ResponseBody
+    AnalyticsMethodMetadata updateAnalyticsMethod
+    (
+            @RequestParam("methodMetadata") String methodMetadataText,
+            @RequestParam("jarBundle") MultipartFile jarBundle,
+            @PathVariable String id
+    ) {
         ObjectMapper mapper = new ObjectMapper();
         AnalyticsMethodMetadata methodMetadata = null;
 
@@ -132,8 +139,9 @@ public class AnalyticsMethodsUploadController {
 
     /**
      * HTTP endpoint handler method that allows to validate an OLAPPortConfiguration of a specific AnalyticsMethod.
+     *
      * @param configurationMapping The OLAPPortConfiguration to be validated
-     * @param id The ID of the AnalyticsMethod Metadata to be validated against the OLAPPortConfiguration.
+     * @param id                   The ID of the AnalyticsMethod Metadata to be validated against the OLAPPortConfiguration.
      * @return An Object with the validation information of the OLAPPortConfiguration against the specified Analytics
      * Method.
      */
@@ -142,18 +150,20 @@ public class AnalyticsMethodsUploadController {
                     value = "/AnalyticsMethods/{id}/validateConfiguration",
                     method = RequestMethod.PUT
             )
-    public @ResponseBody OLAPDataSetConfigurationValidationResult validateConfiguration
-            (
-                    @RequestBody OLAPPortConfiguration configurationMapping,
-                    @PathVariable String id
-            )
-    {
+    public
+    @ResponseBody
+    OLAPDataSetConfigurationValidationResult validateConfiguration
+    (
+            @RequestBody OLAPPortConfiguration configurationMapping,
+            @PathVariable String id
+    ) {
         return analyticsMethodsService.validateConfiguration(id, configurationMapping);
     }
 
     /**
      * HTTP endpoint handler method that returns the OLAPColumnConfigurationData of the input ports of a
      * specific AnalyticsMethod
+     *
      * @param id ID of the AnalyticsMethod Metadata
      * @return A list of OLAPColumnConfigurationData corresponding to the input ports of the AnalyticsMethod
      */
@@ -162,11 +172,12 @@ public class AnalyticsMethodsUploadController {
                     value = "AnalyticsMethods/{id}/getInputPorts",
                     method = RequestMethod.GET
             )
-    public @ResponseBody List<OLAPColumnConfigurationData> getInputPorts
-            (
-                    @PathVariable String id
-            )
-    {
+    public
+    @ResponseBody
+    List<OLAPColumnConfigurationData> getInputPorts
+    (
+            @PathVariable String id
+    ) {
         return analyticsMethodsService.GetInputPortsForMethod(id);
     }
 
@@ -174,6 +185,7 @@ public class AnalyticsMethodsUploadController {
     /**
      * HTTP endpoint handler method that returns the OLAPColumnConfigurationData of the output ports of a
      * specific AnalyticsMethod
+     *
      * @param id ID of the AnalyticsMethod Metadata
      * @return A list of OLAPColumnConfigurationData corresponding to the output ports of the AnalyticsMethod
      */
@@ -182,16 +194,18 @@ public class AnalyticsMethodsUploadController {
                     value = "AnalyticsMethods/{id}/getOutputPorts",
                     method = RequestMethod.GET
             )
-    public @ResponseBody List<OLAPColumnConfigurationData> getOutputPorts
-            (
-                    @PathVariable String id
-            )
-    {
+    public
+    @ResponseBody
+    List<OLAPColumnConfigurationData> getOutputPorts
+    (
+            @PathVariable String id
+    ) {
         return analyticsMethodsService.GetOutputPortsForMethod(id);
     }
 
     /**
      * HTTP endpoint handler method for deleting AnalyticsMethod
+     *
      * @param id id of the AnalyticsMethod to be deleted
      * @return GenericResponseDTO with deletion confirmation
      */
@@ -199,8 +213,9 @@ public class AnalyticsMethodsUploadController {
             value = "/AnalyticsMethods/{id}",
             method = RequestMethod.DELETE
     )
-    public @ResponseBody
-    GenericResponseDTO deleteAnalyticsMethod(@PathVariable String id){
+    public
+    @ResponseBody
+    GenericResponseDTO deleteAnalyticsMethod(@PathVariable String id) {
         analyticsMethodsService.deleteAnalyticsMethod(id);
         return new GenericResponseDTO(HttpStatus.OK.value(),
                 "Analytics Method with id {" + id + "} deleted");
@@ -211,16 +226,17 @@ public class AnalyticsMethodsUploadController {
     /**
      * Handler for AnalyticsMethodNotFoundException.
      * It returns the appropriate HTTP Error code.
-     * @param e exception
+     *
+     * @param e       exception
      * @param request HTTP request
      * @return A GenericResponseDTO with the information about the exception and its cause.
      */
     @ExceptionHandler(AnalyticsMethodNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public @ResponseBody
+    public
+    @ResponseBody
     GenericResponseDTO handleMethodNotFoundException(AnalyticsMethodNotFoundException e,
-                                                     HttpServletRequest request)
-    {
+                                                     HttpServletRequest request) {
         GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.NOT_FOUND.value(),
                 e.getClass().getName(),
@@ -234,16 +250,17 @@ public class AnalyticsMethodsUploadController {
     /**
      * Handler for AnalyticsMethodsUploadErrorException and IOException
      * It returns the appropriate HTTP Error code.
-     * @param e exception
+     *
+     * @param e       exception
      * @param request HTTP request
      * @return A GenericResponseDTO with the information about the exception and its cause.
      */
     @ExceptionHandler({AnalyticsMethodsUploadErrorException.class, IOException.class})
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public @ResponseBody
+    public
+    @ResponseBody
     GenericResponseDTO handleMethodsUploadErrorException(Exception e,
-                                                         HttpServletRequest request)
-    {
+                                                         HttpServletRequest request) {
         GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 e.getClass().getName(),
@@ -257,16 +274,17 @@ public class AnalyticsMethodsUploadController {
     /**
      * Handler for AnalyticsMethodsBadRequestException
      * It returns the appropriate HTTP Error code.
-     * @param e exception
+     *
+     * @param e       exception
      * @param request HTTP request
      * @return A GenericResponseDTO with the information about the exception and its cause.
      */
     @ExceptionHandler(AnalyticsMethodsBadRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public @ResponseBody
+    public
+    @ResponseBody
     GenericResponseDTO handleMethodsUploadBadRequestException(AnalyticsMethodsBadRequestException e,
-                                                              HttpServletRequest request)
-    {
+                                                              HttpServletRequest request) {
         GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.BAD_REQUEST.value(),
                 e.getClass().getName(),
@@ -280,16 +298,17 @@ public class AnalyticsMethodsUploadController {
     /**
      * Handler for AnalyticsMethodLoaderException
      * It returns the appropriate HTTP Error code.
-     * @param e exception
+     *
+     * @param e       exception
      * @param request HTTP request
      * @return A GenericResponseDTO with the information about the exception and its cause.
      */
     @ExceptionHandler(AnalyticsMethodLoaderException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public @ResponseBody
+    public
+    @ResponseBody
     GenericResponseDTO handleMethodsUploadBadRequestException(AnalyticsMethodLoaderException e,
-                                                              HttpServletRequest request)
-    {
+                                                              HttpServletRequest request) {
         GenericResponseDTO errorObject = new GenericResponseDTO(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 e.getClass().getName(),

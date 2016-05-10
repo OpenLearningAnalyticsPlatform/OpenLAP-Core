@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+
+    <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategory" table="Category" schema="dbo"
+           catalog="LADB">
+        <id name="cId">
+            <column name="C_Id" sql-type="int"/>
+        </id>
+        <property name="type">
+            <column name="Type" sql-type="varchar(255)" not-null="true"/>
+        </property>
+        <property name="major">
+            <column name="Major" sql-type="varchar(255)" not-null="true"/>
+        </property>
+        <property name="minor">
+            <column name="Minor" sql-type="varchar(255)" not-null="true"/>
+        </property>
+    </class>
+    <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEntity" table="Entity" schema="dbo"
+           catalog="LADB">
+        <id name="eId">
+            <column name="E_ID" sql-type="int"/>
+        </id>
+        <property name="eventFk">
+            <column name="Event_fk" sql-type="int" not-null="true"/>
+        </property>
+        <property name="entityKey">
+            <column name="EntityKey" sql-type="varchar(255)" not-null="true"/>
+        </property>
+        <property name="value">
+            <column name="Value" sql-type="varchar(255)" not-null="true"/>
+        </property>
+    </class>
+    <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEvent" table="Event" schema="dbo"
+           catalog="LADB">
+        <id name="eventId">
+            <column name="Event_Id" sql-type="int"/>
+        </id>
+        <property name="uId">
+            <column name="U_Id" sql-type="int" not-null="true"/>
+        </property>
+        <property name="cId">
+            <column name="C_ID" sql-type="int" not-null="true"/>
+        </property>
+        <property name="timestamp">
+            <column name="Timestamp" sql-type="int" not-null="true"/>
+        </property>
+        <property name="session">
+            <column name="Session" sql-type="nvarchar(50)" length="50" not-null="true"/>
+        </property>
+        <property name="action">
+            <column name="Action" sql-type="varchar(255)" not-null="true"/>
+        </property>
+        <property name="platform">
+            <column name="Platform" sql-type="varchar(255)" not-null="true"/>
+        </property>
+        <property name="source">
+            <column name="Source" sql-type="varchar(255)" not-null="true"/>
+        </property>
+    </class>
+    <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPUsers" table="Users" schema="dbo"
+           catalog="LADB">
+        <id name="uId">
+            <column name="U_Id" sql-type="int"/>
+        </id>
+        <property name="name">
+            <column name="Name" sql-type="varchar(255)" not-null="true"/>
+        </property>
+    </class>
+</hibernate-mapping>
