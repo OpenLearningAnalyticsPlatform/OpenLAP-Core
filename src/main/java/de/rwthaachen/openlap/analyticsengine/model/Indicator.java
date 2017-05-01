@@ -2,7 +2,6 @@ package de.rwthaachen.openlap.analyticsengine.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.rwthaachen.openlap.analyticsmodules.model.AnalyticsGoal;
 
 import javax.persistence.*;
 
@@ -15,96 +14,73 @@ import javax.persistence.*;
 public class Indicator {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "indicator_id")
     private long id;
 
-    @Column(name = "query", columnDefinition = "TEXT")
-    private String query;
+    @Column(name = "query", columnDefinition = "TEXT", nullable = false)
+    @Convert(converter = IndicatorQueryConverter.class)
+    private IndicatorQuery query;
 
-    @Column(name = "name", columnDefinition = "LONGVARCHAR")
+    @Column(name = "name", nullable = false, unique = true)
     private String name;
 
-    @Column(name = "short_name", columnDefinition = "LONGVARCHAR")
-    private String shortName;
-
+    @Column(nullable = false)
+    private boolean isComposite;
 
     /**
      * Empty constructor
      */
     public Indicator() {
         this.name = "";
-        this.query = "";
-        this.shortName = "";
+        this.isComposite = false;
+        this.query = new IndicatorQuery();
     }
 
     /**
-     * Standard constructor
      *
-     * @param name      Name of the Indicator
-     * @param shortName Short name of the indicator
-     * @param query     Query for the indicator
+     * Partial Indicator
+     *
+     * @param name
+     * @param query
+     * @param isComposite
      */
-    public Indicator(String name, String shortName, String query) {
+    public Indicator(String name, IndicatorQuery query, boolean isComposite) {
         this.name = name;
-        this.shortName = shortName;
         this.query = query;
+        this.isComposite = isComposite;
     }
 
-    /**
-     * @return ID of the Indicator
-     */
     public long getId() {
         return id;
     }
 
-    /**
-     * @param id ID to be set
-     */
     public void setId(long id) {
         this.id = id;
     }
 
-    /**
-     * @return Name of the Indicator
-     */
+    public IndicatorQuery getQuery() {
+        return query;
+    }
+
+    public void setQuery(IndicatorQuery query) {
+        this.query = query;
+    }
+
     public String getName() {
         return name;
     }
 
-    /**
-     * @param name Name to be set.
-     */
     public void setName(String name) {
         this.name = name;
     }
 
-    /**
-     * @return Short Name of the indicator
-     */
-    public String getShortName() {
-        return shortName;
+    public boolean isComposite() {
+        return isComposite;
     }
 
-    /**
-     * @param shortName Description to be set.
-     */
-    public void setShortName(String shortName) {
-        this.shortName = shortName;
-    }
-
-    /**
-     * @return Query for the indicator
-     */
-    public String getQuery() {
-        return query;
-    }
-
-    /**
-     * @param query Query for the indicator.
-     */
-    public void setQuery(String query) {
-        this.query = query;
+    public void setComposite(boolean composite) {
+        isComposite = composite;
     }
 
     /**
@@ -112,10 +88,10 @@ public class Indicator {
      *
      * @param indicator containing the data to be updated.
      */
-    public void updateWithAnalyticsGoal(Indicator indicator) {
+    public void updateWithIndicator(Indicator indicator) {
         this.setName(indicator.getName());
-        this.setShortName(indicator.getShortName());
         this.setQuery(indicator.getQuery());
+        this.setComposite(indicator.isComposite());
     }
 
     /**
@@ -130,33 +106,36 @@ public class Indicator {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             return "Indicator{" +
-                    "id='" + id + '\'' +
+                    "id=" + id +
+                    ", query=" + query +
                     ", name='" + name + '\'' +
-                    ", shortName='" + shortName + '\'' +
-                    ", query='" + query + '\'' +
+                    ", isComposite=" + isComposite +
                     '}';
         }
     }
 
+
+
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof AnalyticsGoal)) return false;
+        if (!(o instanceof Indicator)) return false;
 
-        Indicator that = (Indicator) o;
+        Indicator indicator = (Indicator) o;
 
-        if (getId() != that.getId()) return false;
-        if (!getName().equals(that.getName())) return false;
-        if (!getShortName().equals(that.getShortName())) return false;
-        return getQuery().equals(that.getQuery());
+        if (getId() != indicator.getId()) return false;
+        if (!getQuery().equals(indicator.getQuery())) return false;
+        return getName().equals(indicator.getName());
+
     }
 
     @Override
     public int hashCode() {
-        int result = (getId() + "").hashCode();
-        result = 31 * result + getName().hashCode();
-        result = 31 * result + getShortName().hashCode();
+        int result = (int) (getId() ^ (getId() >>> 32));
         result = 31 * result + getQuery().hashCode();
+        result = 31 * result + getName().hashCode();
+        result = 31 * result + (isComposite() ? 1 : 0);
         return result;
     }
 }

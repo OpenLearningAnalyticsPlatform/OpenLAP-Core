@@ -10,15 +10,18 @@ import de.rwthaachen.openlap.analyticsmodules.exceptions.AnalyticsGoalNotFoundEx
 import de.rwthaachen.openlap.analyticsmodules.exceptions.AnalyticsModulesBadRequestException;
 import de.rwthaachen.openlap.analyticsmodules.exceptions.TriadNotFoundException;
 import de.rwthaachen.openlap.analyticsmodules.model.AnalyticsGoal;
+import de.rwthaachen.openlap.analyticsmodules.model.AnalyticsMethodEntry;
 import de.rwthaachen.openlap.analyticsmodules.model.Triad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This service handles the "business logic" of the macro component. It also works as a facade for other
@@ -47,7 +50,20 @@ public class AnalyticsModulesService {
      */
     public Triad saveTriad(Triad triad) throws AnalyticsMethodNotFoundException {
         // Check that the Analytics Method exists
-        if (analyticsMethodsRepository.exists(triad.getAnalyticsMethodReference().getId())) {
+
+        boolean areAllMethodAvailable = true;
+        long methodNotAvailableId = 0;
+
+        for (Map.Entry<String, AnalyticsMethodEntry> methodEntry : triad.getAnalyticsMethodReference().getAnalyticsMethods().entrySet()) {
+            if(!analyticsMethodsRepository.exists(methodEntry.getValue().getId())) {
+                areAllMethodAvailable = false;
+                methodNotAvailableId = methodEntry.getValue().getId();
+                break;
+            }
+        }
+
+
+        if (areAllMethodAvailable) {
             try {
                 return triadsRepository.save(triad);
             } catch (DataIntegrityViolationException sqlException) {
@@ -58,10 +74,9 @@ public class AnalyticsModulesService {
                 throw new AnalyticsModulesBadRequestException(e.getMessage());
             }
         }
-        // If the AnalyticsMethod is not found then thrown an exception
         else {
             throw new AnalyticsMethodNotFoundException("Method with id: {"
-                    + triad.getAnalyticsMethodReference()
+                    + methodNotAvailableId
                     + "} not found.");
         }
     }
@@ -72,12 +87,12 @@ public class AnalyticsModulesService {
      * @param id of the Triad
      * @return the Triad with the specified ID
      */
-    public Triad getTriadById(String id) throws TriadNotFoundException {
+    public Triad getTriadById(long id) throws TriadNotFoundException {
         Triad result = triadsRepository.findOne(id);
-        if (result == null || id == null) {
+        if (result == null || id < 0) {
             throw new TriadNotFoundException("Triad with id: {" + id + "} not found");
         } else {
-            log.info("viewAnalyticsMethod returns " + result.toString());
+            //log.info("viewAnalyticsMethod returns " + result.toString());
             return result;
         }
     }
@@ -94,12 +109,47 @@ public class AnalyticsModulesService {
         return result;
     }
 
+    public List<Triad> getTriadsByUser(String userName) {
+        return triadsRepository.findByCreatedBy(userName);
+    }
+
+   /* public List<Triad> searchTriad(String searchParameter, boolean exactSearch,
+                                            String colName, String sortDirection, boolean sort) {
+        ArrayList<Triad> result = new ArrayList<Triad>();
+
+        Sort.Direction querySortDirection;
+        switch(sortDirection.toLowerCase()){
+            case "asc":
+                querySortDirection = Sort.Direction.ASC;
+                break;
+            case "desc":
+                querySortDirection = Sort.Direction.DESC;
+                break;
+            default:
+                querySortDirection = Sort.Direction.ASC;
+        }
+
+        if(exactSearch) {
+            if(sort)
+                triadsRepository.findByIndicatorReferenceContaining(searchParameter, new Sort(querySortDirection, colName)).forEach(result::add);
+            else
+                triadsRepository.findByIndicatorReferenceContaining(searchParameter).forEach(result::add);
+        }
+        else {
+            if(sort)
+                triadsRepository.findByIndicatorReferenceContaining(searchParameter, new Sort(querySortDirection, colName)).forEach(result::add);
+            else
+                triadsRepository.findByIndicatorReferenceContaining(searchParameter).forEach(result::add);
+        }
+        return result;
+    }*/
+
     /**
      * Delete the specified Triad
      *
      * @param triadId id of the Triad to be deleted
      */
-    public void deleteTriad(String triadId) {
+    public void deleteTriad(long triadId) {
         if (!triadsRepository.exists(triadId)) {
             throw new TriadNotFoundException("Triad with id = {"
                     + triadId + "} not found.");
@@ -114,7 +164,7 @@ public class AnalyticsModulesService {
      * @param id    of the Triad to be updated
      * @return updated Triad
      */
-    public Triad updateTriad(Triad triad, String id) {
+    public Triad updateTriad(Triad triad, long id) {
         Triad responseTriad = triadsRepository.findOne(id);
         if (responseTriad == null) {
             throw new AnalyticsModulesBadRequestException("Triad with id = {"
@@ -140,12 +190,12 @@ public class AnalyticsModulesService {
      * @param id of the AnalyticsGoal
      * @return the AnalyticsGoal with the specified ID
      */
-    public AnalyticsGoal getAnalyticsGoalById(String id) {
+    public AnalyticsGoal getAnalyticsGoalById(long id) {
         AnalyticsGoal result = analyticsGoalRepository.findOne(id);
-        if (result == null || id == null) {
+        if (result == null || id < 0) {
             throw new AnalyticsGoalNotFoundException("AnalyticsGoal with id: {" + id + "} not found");
         } else {
-            log.info("viewAnalyticsMethod returns " + result.toString());
+            //log.info("getAnalyticsGoalById returns " + result.toString());
             return result;
         }
     }
@@ -182,13 +232,23 @@ public class AnalyticsModulesService {
         return result;
     }
 
+
+    /**
+     * Gets all the existing AnalyticsGoals on the system
+     *
+     * @return returns an ArrayList with all the existing AnalyticsGoals.
+     */
+    public List<AnalyticsGoal> getActiveAnalyticsGoals() {
+        return analyticsGoalRepository.findByIsActive(true);
+    }
+
     /**
      * Switches the active field of the AnalyticsGoal, only active AnalyticsGoals can add new AnalyticsMethods
      *
      * @param id of the AnalyticsGoal to be switched
      * @return the saved AnalyticsGoal with the set active status
      */
-    public AnalyticsGoal setAnalyticsGoalActive(String id, boolean status) {
+    public AnalyticsGoal setAnalyticsGoalActive(long id, boolean status) {
         AnalyticsGoal analyticsGoal = getAnalyticsGoalById(id);
         analyticsGoal.setActive(status);
         return updateAnalyticsGoal(analyticsGoal, id);
@@ -201,7 +261,7 @@ public class AnalyticsModulesService {
      * @param analyticsMethodMetadata the AnalyticsMethodMetadata to be attached
      * @return the new AnalyticsGoal with the attached AnalyticsMethodMetadata
      */
-    public AnalyticsGoal addAnalyticsMethodToAnalyticsGoal(String AnalyticsGoalId,
+    public AnalyticsGoal addAnalyticsMethodToAnalyticsGoal(long AnalyticsGoalId,
                                                            AnalyticsMethodMetadata analyticsMethodMetadata) {
         //Check that AnalyticsGoal exists
         //Check that AnalyticsMethod exists
@@ -235,7 +295,7 @@ public class AnalyticsModulesService {
      * @param id            of the AnalyticsGoal to be updated
      * @return updated AnalyticsGoal
      */
-    public AnalyticsGoal updateAnalyticsGoal(AnalyticsGoal analyticsGoal, String id) {
+    public AnalyticsGoal updateAnalyticsGoal(AnalyticsGoal analyticsGoal, long id) {
         AnalyticsGoal responseAnalyticsGoal = analyticsGoalRepository.findOne(id);
         if (responseAnalyticsGoal == null) {
             throw new AnalyticsGoalNotFoundException("Analytics Goal with id = {"
@@ -250,7 +310,7 @@ public class AnalyticsModulesService {
      *
      * @param AnalyticsGoalId id of the AnalyticsGoal to be deleted
      */
-    public void deleteAnalyticsGoal(String AnalyticsGoalId) {
+    public void deleteAnalyticsGoal(long AnalyticsGoalId) {
         if (!analyticsGoalRepository.exists(AnalyticsGoalId)) {
             throw new AnalyticsGoalNotFoundException("Analytics Goal with id = {"
                     + AnalyticsGoalId + "} not found.");

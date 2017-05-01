@@ -1,10 +1,11 @@
 package de.rwthaachen.openlap.analyticsengine.datamodel;
 
 import javax.persistence.*;
+import java.util.Collection;
 
 /**
  * Created by Arham Muslim
- * on 24-Feb-16.
+ * on 21-Sep-16.
  */
 @Entity
 @Table(name = "Category", schema = "dbo", catalog = "LADB")
@@ -13,6 +14,8 @@ public class OpenLAPCategory {
     private String type;
     private String major;
     private String minor;
+    private Collection<OpenLAPCategoryKeysMapping> categoryKeysMappingsByCId;
+    private Collection<OpenLAPEvent> eventsByCId;
 
     @Id
     @Column(name = "C_Id", nullable = false)
@@ -76,5 +79,23 @@ public class OpenLAPCategory {
         result = 31 * result + (major != null ? major.hashCode() : 0);
         result = 31 * result + (minor != null ? minor.hashCode() : 0);
         return result;
+    }
+
+    @OneToMany(mappedBy = "categoryByCId")
+    public Collection<OpenLAPCategoryKeysMapping> getCategoryKeysMappingsByCId() {
+        return categoryKeysMappingsByCId;
+    }
+
+    public void setCategoryKeysMappingsByCId(Collection<OpenLAPCategoryKeysMapping> categoryKeysMappingsByCId) {
+        this.categoryKeysMappingsByCId = categoryKeysMappingsByCId;
+    }
+
+    @OneToMany(mappedBy = "categoryByCId")
+    public Collection<OpenLAPEvent> getEventsByCId() {
+        return eventsByCId;
+    }
+
+    public void setEventsByCId(Collection<OpenLAPEvent> eventsByCId) {
+        this.eventsByCId = eventsByCId;
     }
 }

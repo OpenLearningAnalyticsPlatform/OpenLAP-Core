@@ -52,7 +52,7 @@ public class AnalyticsMethodsUploadValidator {
             validationInformation.setValid(false);
             validationInformation.setMessage("Metadata Name, Implementing Class, "
                     + "Author and Description must have content "
-                    + "and filename must match the regex ^[a-zA-Z0-9]* $"
+                    //+ "and filename must match the regex ^[a-zA-Z0-9]* $"
                     + "(ASCII Alphanumeric, do not include file extensions)");
             return validationInformation;
         }
@@ -62,7 +62,7 @@ public class AnalyticsMethodsUploadValidator {
             AnalyticsMethod method = classPathLoader.loadClass(methodMetadata.getImplementingClass());
             // Validate pmml if the method has a PMML
             validationInformation.setValid(true);
-            if (method.hasPMML()) {
+            if (method.hasPMML() != null && method.hasPMML()) {
                 SimpleXmlSchemaValidator
                         .validateXML(validationInformation, method.getPMMLInputStream(), pmmlXsdUrl);
             }
@@ -85,7 +85,7 @@ public class AnalyticsMethodsUploadValidator {
      */
     private boolean validateFilename(String input) {
         final Pattern pattern = Pattern.compile("^[a-zA-Z0-9]*$");
-        if (!pattern.matcher(input).matches()) return false;
+        //if (!pattern.matcher(input).matches()) return false;
         return true;
     }
 

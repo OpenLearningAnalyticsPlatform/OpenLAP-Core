@@ -4,15 +4,15 @@ import javax.persistence.*;
 
 /**
  * Created by Arham Muslim
- * on 24-Feb-16.
+ * on 21-Sep-16.
  */
 @Entity
 @Table(name = "Entity", schema = "dbo", catalog = "LADB")
 public class OpenLAPEntity {
     private int eId;
-    private Integer eventFk;
     private String entityKey;
     private String value;
+    private OpenLAPEvent eventByEventFk;
 
     @Id
     @Column(name = "E_ID", nullable = false)
@@ -25,17 +25,7 @@ public class OpenLAPEntity {
     }
 
     @Basic
-    @Column(name = "Event_fk", nullable = true)
-    public Integer getEventFk() {
-        return eventFk;
-    }
-
-    public void setEventFk(Integer eventFk) {
-        this.eventFk = eventFk;
-    }
-
-    @Basic
-    @Column(name = "EntityKey", nullable = true, length = 255)
+    @Column(name = "entity_key", nullable = true, length = 255)
     public String getEntityKey() {
         return entityKey;
     }
@@ -62,7 +52,6 @@ public class OpenLAPEntity {
         OpenLAPEntity that = (OpenLAPEntity) o;
 
         if (eId != that.eId) return false;
-        if (eventFk != null ? !eventFk.equals(that.eventFk) : that.eventFk != null) return false;
         if (entityKey != null ? !entityKey.equals(that.entityKey) : that.entityKey != null) return false;
         if (value != null ? !value.equals(that.value) : that.value != null) return false;
 
@@ -72,9 +61,18 @@ public class OpenLAPEntity {
     @Override
     public int hashCode() {
         int result = eId;
-        result = 31 * result + (eventFk != null ? eventFk.hashCode() : 0);
         result = 31 * result + (entityKey != null ? entityKey.hashCode() : 0);
         result = 31 * result + (value != null ? value.hashCode() : 0);
         return result;
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "Event_fk", referencedColumnName = "Event_Id")
+    public OpenLAPEvent getEventByEventFk() {
+        return eventByEventFk;
+    }
+
+    public void setEventByEventFk(OpenLAPEvent eventByEventFk) {
+        this.eventByEventFk = eventByEventFk;
     }
 }

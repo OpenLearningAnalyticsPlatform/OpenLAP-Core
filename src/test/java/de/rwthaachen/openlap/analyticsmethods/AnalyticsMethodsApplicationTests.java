@@ -82,9 +82,9 @@ public class AnalyticsMethodsApplicationTests {
 
     //CONFIGURATION JSON
     private static final String RESOURCE_JSON_CONFIGURATION_VALID =
-            "olapPortconfiguration/valid_portConfiguration.json";
+            "openLAPPortConfig/valid_portConfiguration.json";
     private static final String RESOURCE_JSON_CONFIGURATION_WRONG =
-            "olapPortconfiguration/wrong_portConfiguration.json";
+            "openLAPPortConfig/wrong_portConfiguration.json";
 
 
     private static final Logger log =
@@ -329,7 +329,7 @@ public class AnalyticsMethodsApplicationTests {
     public void controllerValidateConfigurationTest() throws Exception {
         MvcResult result;
 
-        // Test with correct olapPortconfiguration
+        // Test with correct openLAPPortConfig
         String jsonTxt1 = prepareJsonString(RESOURCE_JSON_CONFIGURATION_VALID);
         result = mockMvc.perform(put("/AnalyticsMethods/" + testingMethodId + "/validateConfiguration")
                 .contentType(MediaType.APPLICATION_JSON).content(jsonTxt1))
@@ -339,7 +339,7 @@ public class AnalyticsMethodsApplicationTests {
                 .andReturn();
         log.info("TEST - Configuration response content: " + result.getResponse().getContentAsString());
 
-        // Test with incorrect olapPortconfiguration
+        // Test with incorrect openLAPPortConfig
         String jsonTxt2 = prepareJsonString(RESOURCE_JSON_CONFIGURATION_WRONG);
         result = mockMvc.perform(put("/AnalyticsMethods/" + testingMethodId + "/validateConfiguration")
                 .contentType(MediaType.APPLICATION_JSON).content(jsonTxt2))

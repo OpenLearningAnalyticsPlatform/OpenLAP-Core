@@ -1,8 +1,5 @@
 package de.rwthaachen.openlap.analyticsmethods.service;
 
-import DataSet.OLAPColumnConfigurationData;
-import DataSet.OLAPDataSetConfigurationValidationResult;
-import DataSet.OLAPPortConfiguration;
 import core.AnalyticsMethod;
 import de.rwthaachen.openlap.OpenLAPCoreApplication;
 import de.rwthaachen.openlap.analyticsmethods.dataaccess.AnalyticsMethodsRepository;
@@ -11,6 +8,9 @@ import de.rwthaachen.openlap.analyticsmethods.exceptions.AnalyticsMethodNotFound
 import de.rwthaachen.openlap.analyticsmethods.exceptions.AnalyticsMethodsBadRequestException;
 import de.rwthaachen.openlap.analyticsmethods.exceptions.AnalyticsMethodsUploadErrorException;
 import de.rwthaachen.openlap.analyticsmethods.model.AnalyticsMethodMetadata;
+import de.rwthaachen.openlap.dataset.OpenLAPColumnConfigData;
+import de.rwthaachen.openlap.dataset.OpenLAPDataSetConfigValidationResult;
+import de.rwthaachen.openlap.dataset.OpenLAPPortConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,12 +64,12 @@ public class AnalyticsMethodsService {
      * @return The AnalyticsMethod with Metadata of the specified ID
      * @throws AnalyticsMethodNotFoundException
      */
-    public AnalyticsMethodMetadata viewAnalyticsMethod(String id) throws AnalyticsMethodNotFoundException {
+    public AnalyticsMethodMetadata viewAnalyticsMethod(long id) throws AnalyticsMethodNotFoundException {
         AnalyticsMethodMetadata result = analyticsMethodsRepository.findOne(id);
-        if (result == null || id == null) {
+        //if (result == null || id == null) {
+        if (result == null || id < 0) {
             throw new AnalyticsMethodNotFoundException("Analytics Method with id not found: " + id);
         } else {
-            log.info("viewAnalyticsMethod returns " + analyticsMethodsRepository.findOne(id).toString());
             return result;
         }
     }
@@ -129,7 +129,7 @@ public class AnalyticsMethodsService {
      * @return The Metadata of the uploaded AnalyticsMethod if deemed valid by the OpenLAP
      */
     public AnalyticsMethodMetadata updateAnalyticsMethod(AnalyticsMethodMetadata methodMetadata,
-                                                         String id, MultipartFile jarBundle) {
+                                                         long id, MultipartFile jarBundle) {
         AnalyticsMethodsValidationInformation validationInformation;
         FileHandler fileHandler = new FileHandler(log);
 
@@ -139,7 +139,7 @@ public class AnalyticsMethodsService {
         if (result == null) {
             throw new AnalyticsMethodNotFoundException("Analytics Method with id not found: " + methodMetadata.getId());
         } else {
-            log.info("Attemting to update Analytics method: " + methodMetadata.getId());
+            //log.info("Attemting to update Analytics method: " + methodMetadata.getId());
             //Make bundle required.
             if (!jarBundle.isEmpty()) {
                 // Save the jar in the filesystem
@@ -183,18 +183,18 @@ public class AnalyticsMethodsService {
     }
 
     /**
-     * Method that allows to validate an OLAPPortConfiguration of a specific AnalyticsMethod.
+     * Method that allows to validate an OpenLAPPortConfig of a specific AnalyticsMethod.
      *
-     * @param analyticsMethodId ID of the AnalyticsMethod Metadata to be validated against the OLAPPortConfiguration.
-     * @param configuration     The OLAPPortConfiguration to be validated
-     * @return An Object with the validation information of the OLAPPortConfiguration against the specified Analytics
+     * @param analyticsMethodId ID of the AnalyticsMethod Metadata to be validated against the OpenLAPPortConfig.
+     * @param configuration     The OpenLAPPortConfig to be validated
+     * @return An Object with the validation information of the OpenLAPPortConfig against the specified Analytics
      * Method.
      * @throws AnalyticsMethodLoaderException
      */
-    public OLAPDataSetConfigurationValidationResult validateConfiguration(
-            String analyticsMethodId, OLAPPortConfiguration configuration) throws AnalyticsMethodLoaderException {
-        log.info("Attempting to validateConfiguration :" + configuration.getMapping()
-                + "for method with id: " + analyticsMethodId);
+    public OpenLAPDataSetConfigValidationResult validateConfiguration(
+            long analyticsMethodId, OpenLAPPortConfig configuration) throws AnalyticsMethodLoaderException {
+        //log.info("Attempting to validateConfiguration :" + configuration.getMapping()
+        //        + "for method with id: " + analyticsMethodId);
         AnalyticsMethod method = loadAnalyticsMethodInstance(analyticsMethodId);
         return method.getInput().validateConfiguration(configuration);
     }
@@ -207,56 +207,56 @@ public class AnalyticsMethodsService {
      * @return A new instance of the specified Analytics Method.
      * @throws AnalyticsMethodLoaderException
      */
-    public AnalyticsMethod loadAnalyticsMethodInstance(String analyticsMethodId) throws AnalyticsMethodLoaderException {
-        AnalyticsMethod method;
-        AnalyticsMethodsClassPathLoader classPathLoader =
-                new AnalyticsMethodsClassPathLoader(analyticsMethodsJarsFolder);
-
+    public AnalyticsMethod loadAnalyticsMethodInstance(long analyticsMethodId) throws AnalyticsMethodLoaderException {
         AnalyticsMethodMetadata analyticsMethodMetadata = analyticsMethodsRepository.findOne(analyticsMethodId);
-        if (analyticsMethodMetadata == null || analyticsMethodId == null) {
+        if (analyticsMethodMetadata == null || analyticsMethodId < 0) {
             throw new AnalyticsMethodNotFoundException("Analytics Method with id not found: " + analyticsMethodId);
         } else {
-            log.info("Attempting to Load method: " + analyticsMethodMetadata.getFilename()
-                    + " for method with id: {" + analyticsMethodId + "}");
+
+            AnalyticsMethod method;
+            AnalyticsMethodsClassPathLoader classPathLoader =
+                    new AnalyticsMethodsClassPathLoader(analyticsMethodsJarsFolder + "/" + analyticsMethodMetadata.getFilename()
+                            + JAR_EXTENSION);
+
             method = classPathLoader.loadClass(analyticsMethodMetadata.getImplementingClass());
             return method;
         }
     }
 
     /**
-     * Method that returns the OLAPColumnConfigurationData of the input ports of a specific AnalyticsMethod
+     * Method that returns the OpenLAPColumnConfigData of the input ports of a specific AnalyticsMethod
      *
      * @param id ID of the AnalyticsMethod Metadata
-     * @return A list of OLAPColumnConfigurationData corresponding to the input ports of the AnalyticsMethod
+     * @return A list of OpenLAPColumnConfigData corresponding to the input ports of the AnalyticsMethod
      */
-    public List<OLAPColumnConfigurationData> GetInputPortsForMethod(String id) {
+    public List<OpenLAPColumnConfigData> GetInputPortsForMethod(long id) {
         return getPortsForMethod(id, INPUT_PORTS);
     }
 
     /**
-     * Method that returns the OLAPColumnConfigurationData of the output ports of a specific AnalyticsMethod
+     * Method that returns the OpenLAPColumnConfigData of the output ports of a specific AnalyticsMethod
      *
      * @param id ID of the AnalyticsMethod Metadata
-     * @return A list of OLAPColumnConfigurationData corresponding to the output ports of the AnalyticsMethod
+     * @return A list of OpenLAPColumnConfigData corresponding to the output ports of the AnalyticsMethod
      */
-    public List<OLAPColumnConfigurationData> GetOutputPortsForMethod(String id) {
+    public List<OpenLAPColumnConfigData> GetOutputPortsForMethod(long id) {
         return getPortsForMethod(id, OUTPUT_PORTS);
     }
 
     /**
-     * Returns a List of OLAPColumnConfigurationData of either the Input ports or output ports of the Analytics Method
+     * Returns a List of OpenLAPColumnConfigData of either the Input ports or output ports of the Analytics Method
      * of the given <code>id</code>.
      *
      * @param id            of the Analytics Method
      * @param portParameter Either <code>INPUT_PORT</code> or <code>OUTPUT_PORTS</code>
-     * @return List of the OLAPColumnConfigurationData corresponding to the inputs or outputs of the Analytics Method
+     * @return List of the OpenLAPColumnConfigData corresponding to the inputs or outputs of the Analytics Method
      * @throws AnalyticsMethodLoaderException
      */
-    private List<OLAPColumnConfigurationData> getPortsForMethod(String id, String portParameter)
+    private List<OpenLAPColumnConfigData> getPortsForMethod(long id, String portParameter)
             throws AnalyticsMethodLoaderException {
 
         AnalyticsMethod method = loadAnalyticsMethodInstance(id);
-        log.info("Attempting to return " + portParameter + " ports of the method with id {" + id + "}");
+        //log.info("Attempting to return " + portParameter + " ports of the method with id {" + id + "}");
 
         switch (portParameter) {
             case INPUT_PORTS:
@@ -273,12 +273,13 @@ public class AnalyticsMethodsService {
      *
      * @param id id of the AnalyticsMethod to be deleted
      */
-    public void deleteAnalyticsMethod(String id) {
+    public void deleteAnalyticsMethod(long id) {
 
         FileHandler fileHandler = new FileHandler(log);
         AnalyticsMethodMetadata metadata = analyticsMethodsRepository.findOne(id);
 
-        if (metadata == null || id == null || id.isEmpty()) {
+        //if (metadata == null || id == null || id.isEmpty()) {
+        if (metadata == null || id <0) {
             throw new AnalyticsMethodNotFoundException("Analytics Method with id = {"
                     + id + "} not found.");
         }

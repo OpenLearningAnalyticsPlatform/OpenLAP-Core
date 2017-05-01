@@ -2,9 +2,9 @@ package de.rwthaachen.openlap.analyticsmodules.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.rwthaachen.openlap.dataset.OpenLAPPortConfig;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,44 +12,24 @@ import java.util.Map;
  * OpenLAP.It is modeled after the corresponding Class on the Indicator Engine and holds metadata necessary to reference
  * on a Triad
  */
-public class IndicatorReference {
+public class OpenLAPPortConfigReference {
 //    long id;
 //    String indicatorName;
 
     //HashMap to store the id and the name of the indicators related to the triad
-    Map<String, IndicatorEntry> indicators;
-
-    List<OpenLAPDataSetMergeMapping> dataSetMergeMappingList;
-
-    String indicatorType;
+    Map<String, OpenLAPPortConfig> portConfigs;
 
 
-    public IndicatorReference() {
-        indicators = new HashMap<String, IndicatorEntry>();
+    public OpenLAPPortConfigReference() {
+        portConfigs = new HashMap<String, OpenLAPPortConfig>();
     }
 
-    public Map<String, IndicatorEntry> getIndicators() {
-        return indicators;
+    public Map<String, OpenLAPPortConfig> getPortConfigs() {
+        return portConfigs;
     }
 
-    public void setIndicators(Map<String, IndicatorEntry> indicators) {
-        this.indicators = indicators;
-    }
-
-    public List<OpenLAPDataSetMergeMapping> getDataSetMergeMappingList() {
-        return dataSetMergeMappingList;
-    }
-
-    public void setDataSetMergeMappingList(List<OpenLAPDataSetMergeMapping> dataSetMergeMappingList) {
-        this.dataSetMergeMappingList = dataSetMergeMappingList;
-    }
-
-    public String getIndicatorType() {
-        return indicatorType;
-    }
-
-    public void setIndicatorType(String indicatorType) {
-        this.indicatorType = indicatorType;
+    public void setPortConfigs(Map<String, OpenLAPPortConfig> portConfigs) {
+        this.portConfigs = portConfigs;
     }
 
     @Override
@@ -58,10 +38,8 @@ public class IndicatorReference {
         try {
             return mapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            return "IndicatorReference{" +
-                    "indicators=" + indicators +
-                    ", dataSetMergeMappingList=" + dataSetMergeMappingList +
-                    ", indicatorType='" + indicatorType + '\'' +
+            return "OpenLAPPortConfigReference{" +
+                    "portConfigs=" + portConfigs +
                     '}';
         }
     }

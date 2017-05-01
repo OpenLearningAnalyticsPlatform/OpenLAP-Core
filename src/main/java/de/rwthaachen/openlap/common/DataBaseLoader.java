@@ -1,6 +1,5 @@
 package de.rwthaachen.openlap.common;
 
-import DataSet.OLAPPortConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.rwthaachen.openlap.OpenLAPCoreApplication;
 import de.rwthaachen.openlap.analyticsmethods.model.AnalyticsMethodMetadata;
@@ -10,6 +9,7 @@ import de.rwthaachen.openlap.analyticsmodules.model.IndicatorReference;
 import de.rwthaachen.openlap.analyticsmodules.model.Triad;
 import de.rwthaachen.openlap.analyticsmodules.model.VisualizerReference;
 import de.rwthaachen.openlap.analyticsmodules.service.AnalyticsModulesService;
+import de.rwthaachen.openlap.dataset.OpenLAPPortConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +67,7 @@ public class DataBaseLoader {
 
         //InputStream is = getClass().getClassLoader().getResourceAsStream("/development/testManifests/UploadMethodManifestForDevelopment.json");
         URL dirURL = getClass().getClassLoader().getResource(RESOURCE_JAR_UPLOAD_FOR_UPDATING);
-        log.info("Started DataBaseLoader initDatabase");
+        //log.info("Started DataBaseLoader initDatabase");
 
 
         try {
@@ -83,7 +83,7 @@ public class DataBaseLoader {
             MultipartFile mpf = new MockMultipartFile("jarBundle", file.getName(), "multipart/form-data", fi1);
 
             analyticsMethodsService.uploadAnalyticsMethod(result, mpf);
-            log.info("Loaded metadata: " + result.toString());
+            //log.info("Loaded metadata: " + result.toString());
             return result;
 
         } catch (Exception e) {
@@ -100,31 +100,32 @@ public class DataBaseLoader {
      * @return
      */
     private Triad loadTriad(AnalyticsMethodMetadata preloadedMetadata) {
-        // Create a Triad
+        /*// Create a Triad
         // String indicator = "indicator1";
-        IndicatorReference indicator = new IndicatorReference(1, "indicator1", "The first indicator ever");
+        IndicatorReference indicator = new IndicatorReference(1, "The first indicator ever");
         //String visualization = "visualization1";
         VisualizerReference visualization = new VisualizerReference(1, 1, "visualization1", "Something made by Bassim");
 
         // Save the Triad using the service
         try {
-            OLAPPortConfiguration indicatorToMethodMapping = mapper.readValue(
+            OpenLAPPortConfig indicatorToMethodMapping = mapper.readValue(
                     getJsonString(JsonGeneratorIndex.OLAPCONFIGURATION_INDICATOR_TO_METHOD),
-                    OLAPPortConfiguration.class);
-            OLAPPortConfiguration methodToVisualizationMapping = mapper.readValue(
+                    OpenLAPPortConfig.class);
+            OpenLAPPortConfig methodToVisualizationMapping = mapper.readValue(
                     getJsonString(JsonGeneratorIndex.OLAPCONFIGURATION_INDICATOR_TO_METHOD),
-                    OLAPPortConfiguration.class);
+                    OpenLAPPortConfig.class);
             Triad triad = new Triad(indicator, preloadedMetadata, visualization,
                     indicatorToMethodMapping, methodToVisualizationMapping);
             Triad result = analyticsModulesService.saveTriad(triad);
-            log.info("Loaded Triad: " + result.toString());
+            //log.info("Loaded Triad: " + result.toString());
             return result;
         } catch (Exception e) {
             log.info("DataBaseLoader PostConstruct Failed loading Triad");
             e.printStackTrace();
             return null;
-        }
+        }*/
 
+        return null;
     }
 
     /**
@@ -143,7 +144,7 @@ public class DataBaseLoader {
             // To test that does not save twice
             analyticsGoal = analyticsModulesService.addAnalyticsMethodToAnalyticsGoal(analyticsGoal.getId(),
                     preloadedMetadata);
-            log.info("Loaded AnalyticsGoal: " + analyticsGoal.toString());
+            //log.info("Loaded AnalyticsGoal: " + analyticsGoal.toString());
         } catch (Exception e) {
             log.info("DataBaseLoader PostConstruct Failed loading AnalyticsGoal");
             e.printStackTrace();

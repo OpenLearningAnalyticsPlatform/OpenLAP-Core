@@ -19,9 +19,9 @@ import javax.persistence.*;
 public class AnalyticsMethodMetadata implements Cloneable {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue (strategy = GenerationType.AUTO)
     @Column(name = "METHODMETADATA_ID")
-    String id;
+    long id;
     @Column(unique = true, nullable = false)
     String name;
     @Column(nullable = false)
@@ -83,14 +83,14 @@ public class AnalyticsMethodMetadata implements Cloneable {
     /**
      * @return ID of the Analytics Method Metadata
      */
-    public String getId() {
+    public long getId() {
         return id;
     }
 
     /**
      * @param id ID to be set
      */
-    public void setId(String id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -202,7 +202,7 @@ public class AnalyticsMethodMetadata implements Cloneable {
     /**
      * Use another AnalyticsMethodMetadata to update this object
      *
-     * @param updatedMetadata
+     * @param updatedMetadata updated metadata about the analytics method
      */
     public void updateWithMetadata(AnalyticsMethodMetadata updatedMetadata) {
         this.setCreator(updatedMetadata.getCreator());
@@ -218,7 +218,7 @@ public class AnalyticsMethodMetadata implements Cloneable {
 
         AnalyticsMethodMetadata that = (AnalyticsMethodMetadata) o;
 
-        if (!getId().equals(that.getId())) return false;
+        if (getId() != that.getId()) return false;
         if (!getName().equals(that.getName())) return false;
         if (!getCreator().equals(that.getCreator())) return false;
         if (!getDescription().equals(that.getDescription())) return false;
@@ -230,7 +230,7 @@ public class AnalyticsMethodMetadata implements Cloneable {
 
     @Override
     public int hashCode() {
-        int result = getId().hashCode();
+        int result = (int) (id ^ (id >>> 32));
         result = 31 * result + getName().hashCode();
         result = 31 * result + getCreator().hashCode();
         result = 31 * result + getDescription().hashCode();

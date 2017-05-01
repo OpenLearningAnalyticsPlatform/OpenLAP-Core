@@ -1,16 +1,18 @@
 package de.rwthaachen.openlap.analyticsengine.datamodel;
 
 import javax.persistence.*;
+import java.util.Collection;
 
 /**
  * Created by Arham Muslim
- * on 24-Feb-16.
+ * on 21-Sep-16.
  */
 @Entity
 @Table(name = "Users", schema = "dbo", catalog = "LADB")
 public class OpenLAPUsers {
     private int uId;
     private String name;
+    private Collection<OpenLAPEvent> eventsByUId;
 
     @Id
     @Column(name = "U_Id", nullable = false)
@@ -50,5 +52,14 @@ public class OpenLAPUsers {
         int result = uId;
         result = 31 * result + (name != null ? name.hashCode() : 0);
         return result;
+    }
+
+    @OneToMany(mappedBy = "usersByUId")
+    public Collection<OpenLAPEvent> getEventsByUId() {
+        return eventsByUId;
+    }
+
+    public void setEventsByUId(Collection<OpenLAPEvent> eventsByUId) {
+        this.eventsByUId = eventsByUId;
     }
 }

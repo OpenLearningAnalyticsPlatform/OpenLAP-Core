@@ -16,19 +16,24 @@ import java.util.Set;
 @Table(name = "Goals")
 public class AnalyticsGoal {
 
-    @Column(columnDefinition = "LONGVARCHAR")
+    @Column(columnDefinition = "TEXT")
     @Convert(converter = AnalyticsMethodMetadataSetConverter.class)
     Set<AnalyticsMethodMetadata> analyticsMethods;
+
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "LGOAL_ID")
-    private String id;
+    private long id;
+
     @Column(nullable = false, unique = true)
     private String name;
+
     @Column(nullable = false)
     private String description;
+
     @Column(nullable = false)
     private String author;
+
     @Column(nullable = false)
     private boolean isActive;
 
@@ -36,7 +41,6 @@ public class AnalyticsGoal {
      * Empty constructor
      */
     public AnalyticsGoal() {
-        this.id = "";
         this.name = "";
         this.author = "";
         this.description = "";
@@ -63,14 +67,14 @@ public class AnalyticsGoal {
     /**
      * @return ID of the Analytics Goal
      */
-    public String getId() {
+    public long getId() {
         return id;
     }
 
     /**
      * @param id ID to be set
      */
-    public void setId(String id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -185,8 +189,9 @@ public class AnalyticsGoal {
 
         AnalyticsGoal that = (AnalyticsGoal) o;
 
+        if (getId() != that.getId()) return false;
         if (isActive() != that.isActive()) return false;
-        if (!getId().equals(that.getId())) return false;
+        //if (!getId().equals(that.getId())) return false;
         if (!getName().equals(that.getName())) return false;
         if (!getDescription().equals(that.getDescription())) return false;
         return getAuthor().equals(that.getAuthor());
@@ -195,7 +200,8 @@ public class AnalyticsGoal {
 
     @Override
     public int hashCode() {
-        int result = getId().hashCode();
+        //int result = getId().hashCode();
+        int result = (int) (id ^ (id >>> 32));
         result = 31 * result + getName().hashCode();
         result = 31 * result + getDescription().hashCode();
         result = 31 * result + getAuthor().hashCode();

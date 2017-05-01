@@ -3,7 +3,6 @@
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
 <hibernate-mapping>
-
     <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategory" table="Category" schema="dbo"
            catalog="LADB">
         <id name="cId">
@@ -18,33 +17,53 @@
         <property name="minor">
             <column name="Minor" sql-type="varchar(255)" not-null="true"/>
         </property>
+        <set name="categoryKeysMappingsByCId" inverse="true">
+            <key>
+                <column name="C_ID" not-null="true"/>
+            </key>
+            <one-to-many not-found="ignore"
+                         class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategoryKeysMapping"/>
+        </set>
+        <set name="eventsByCId" inverse="true">
+            <key>
+                <column name="C_ID" not-null="true"/>
+            </key>
+            <one-to-many not-found="ignore" class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEvent"/>
+        </set>
+    </class>
+    <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategoryKeysMapping"
+           table="Category_Keys_Mapping" schema="dbo" catalog="LADB">
+        <id name="id">
+            <column name="ID" sql-type="bigint"/>
+        </id>
+        <many-to-one name="categoryByCId" class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategory">
+            <column name="C_ID" not-null="true"/>
+        </many-to-one>
+        <many-to-one name="keysSpecificationsByKId"
+                     class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPKeysSpecifications">
+            <column name="K_ID" not-null="true"/>
+        </many-to-one>
     </class>
     <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEntity" table="Entity" schema="dbo"
            catalog="LADB">
         <id name="eId">
             <column name="E_ID" sql-type="int"/>
         </id>
-        <property name="eventFk">
-            <column name="Event_fk" sql-type="int" not-null="true"/>
-        </property>
         <property name="entityKey">
-            <column name="EntityKey" sql-type="varchar(255)" not-null="true"/>
+            <column name="entity_key" sql-type="varchar(255)" not-null="true"/>
         </property>
         <property name="value">
             <column name="Value" sql-type="varchar(255)" not-null="true"/>
         </property>
+        <many-to-one name="eventByEventFk" class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEvent">
+            <column name="Event_fk" not-null="true"/>
+        </many-to-one>
     </class>
     <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEvent" table="Event" schema="dbo"
            catalog="LADB">
         <id name="eventId">
             <column name="Event_Id" sql-type="int"/>
         </id>
-        <property name="uId">
-            <column name="U_Id" sql-type="int" not-null="true"/>
-        </property>
-        <property name="cId">
-            <column name="C_ID" sql-type="int" not-null="true"/>
-        </property>
         <property name="timestamp">
             <column name="Timestamp" sql-type="int" not-null="true"/>
         </property>
@@ -60,6 +79,43 @@
         <property name="source">
             <column name="Source" sql-type="varchar(255)" not-null="true"/>
         </property>
+        <many-to-one name="usersByUId" class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPUsers">
+            <column name="U_Id" not-null="true"/>
+        </many-to-one>
+        <many-to-one name="categoryByCId" class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategory">
+            <column name="C_ID" not-null="true"/>
+        </many-to-one>
+        <set name="entitiesByEventId" inverse="true">
+            <key>
+                <column name="Event_fk" not-null="true"/>
+            </key>
+            <one-to-many not-found="ignore" class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEntity"/>
+        </set>
+    </class>
+    <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPKeysSpecifications" table="Keys_Specifications"
+           schema="dbo" catalog="LADB">
+        <id name="id">
+            <column name="ID" sql-type="bigint"/>
+        </id>
+        <property name="key">
+            <column name="Key" sql-type="varchar(50)" length="50" not-null="true"/>
+        </property>
+        <property name="description">
+            <column name="Description" sql-type="varchar(255)" not-null="true"/>
+        </property>
+        <property name="title">
+            <column name="Title" sql-type="varchar(50)" length="50" not-null="true"/>
+        </property>
+        <property name="type">
+            <column name="Type" sql-type="varchar(50)" length="50" not-null="true"/>
+        </property>
+        <set name="categoryKeysMappingsById" inverse="true">
+            <key>
+                <column name="K_ID" not-null="true"/>
+            </key>
+            <one-to-many not-found="ignore"
+                         class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategoryKeysMapping"/>
+        </set>
     </class>
     <class name="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPUsers" table="Users" schema="dbo"
            catalog="LADB">
@@ -69,5 +125,11 @@
         <property name="name">
             <column name="Name" sql-type="varchar(255)" not-null="true"/>
         </property>
+        <set name="eventsByUId" inverse="true">
+            <key>
+                <column name="U_Id" not-null="true"/>
+            </key>
+            <one-to-many not-found="ignore" class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEvent"/>
+        </set>
     </class>
 </hibernate-mapping>

@@ -36,19 +36,19 @@
         <dependency>
             <groupId>com.github.OpenLearningAnalyticsPlatform</groupId>
             <artifactId>OpenLAP-DataSet</artifactId>
-            <version>-SNAPSHOT</version>
+            <version>v2.2</version>
         </dependency>
 
         <dependency>
             <groupId>com.github.OpenLearningAnalyticsPlatform</groupId>
             <artifactId>OpenLAP-AnalyticsMethodsFramework</artifactId>
-            <version>v1.0</version>
+            <version>v3.2</version>
         </dependency>
 
         <dependency>
             <groupId>com.github.OpenLearningAnalyticsPlatform</groupId>
             <artifactId>OpenLAP-Common</artifactId>
-            <version>805c4d8007</version>
+            <version>7b5b463f90</version>
         </dependency>
 
         <dependency>
@@ -138,6 +138,22 @@
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>sqljdbc42</artifactId>
             <version>4.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>c3p0</groupId>
+            <artifactId>c3p0</artifactId>
+            <version>0.9.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-c3p0</artifactId>
+            <version>4.3.11.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.0</version>
         </dependency>
     </dependencies>
 

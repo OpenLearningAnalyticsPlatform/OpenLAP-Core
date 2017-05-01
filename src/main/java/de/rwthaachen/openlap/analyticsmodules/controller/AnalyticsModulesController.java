@@ -60,7 +60,7 @@ public class AnalyticsModulesController {
     )
     public
     @ResponseBody
-    Triad getTriadById(@PathVariable String id) {
+    Triad getTriadById(@PathVariable long id) {
         return modulesService.getTriadById(id);
     }
 
@@ -69,6 +69,17 @@ public class AnalyticsModulesController {
      *
      * @return JSON representation of all the Triads
      */
+
+    @RequestMapping(
+            value = "/AnalyticsModules/TriadsByUser",
+            method = RequestMethod.GET
+    )
+    public
+    @ResponseBody
+    List<Triad> getTriadsByUser(@RequestParam String userName) {
+        return modulesService.getAllTriads();
+    }
+
     @RequestMapping(
             value = "/AnalyticsModules/Triads",
             method = RequestMethod.GET
@@ -78,6 +89,7 @@ public class AnalyticsModulesController {
     List<Triad> getAllTriads() {
         return modulesService.getAllTriads();
     }
+
 
     /**
      * HTTP endpoint handler method for updating Triad
@@ -93,7 +105,7 @@ public class AnalyticsModulesController {
     public
     @ResponseBody
     Triad updateTriad(@RequestBody Triad triad,
-                      @PathVariable String id) {
+                      @PathVariable long id) {
         return modulesService.updateTriad(triad, id);
     }
 
@@ -109,7 +121,7 @@ public class AnalyticsModulesController {
     )
     public
     @ResponseBody
-    GenericResponseDTO deleteTriad(@PathVariable String id) {
+    GenericResponseDTO deleteTriad(@PathVariable long id) {
         modulesService.deleteTriad(id);
         return new GenericResponseDTO(HttpStatus.OK.value(),
                 "Triad with id {" + id + "} deleted");
@@ -131,7 +143,7 @@ public class AnalyticsModulesController {
     )
     public
     @ResponseBody
-    AnalyticsGoal getAnalyticsGoalById(@PathVariable String id) {
+    AnalyticsGoal getAnalyticsGoalById(@PathVariable long id) {
         return modulesService.getAnalyticsGoalById(id);
     }
 
@@ -164,7 +176,7 @@ public class AnalyticsModulesController {
     )
     public
     @ResponseBody
-    AnalyticsGoal authorizeAnalyticsGoal(@PathVariable String id, @PathVariable String action) {
+    AnalyticsGoal authorizeAnalyticsGoal(@PathVariable long id, @PathVariable String action) {
         if (action.equals(ANALYTICS_GOAL_ACTION_ACTIVATE)) {
             return modulesService.setAnalyticsGoalActive(id, true);
         } else if (action.equals(ANALYTICS_GOAL_ACTION_DEACTIVATE)) {
@@ -188,6 +200,21 @@ public class AnalyticsModulesController {
     }
 
     /**
+     * HTTP endpoint handler method to get all AnalyticsGoals
+     *
+     * @return JSON representation of all the AnalyticsGoals
+     */
+    @RequestMapping(
+            value = "/AnalyticsModules/ActiveAnalyticsGoals/",
+            method = RequestMethod.GET
+    )
+    public
+    @ResponseBody
+    List<AnalyticsGoal> getActiveAnalyticsGoals() {
+        return modulesService.getActiveAnalyticsGoals();
+    }
+
+    /**
      * HTTP endpoint handler method for attaching an AnalyticsMethod to a AnalyticsGoal
      *
      * @param AnalyticsGoalId         id of the AnalyticsGoal
@@ -201,7 +228,7 @@ public class AnalyticsModulesController {
     public
     @ResponseBody
     AnalyticsGoal addAnalyticsMethodToAnalyticsGoal(
-            @PathVariable String AnalyticsGoalId,
+            @PathVariable long AnalyticsGoalId,
             @RequestBody AnalyticsMethodMetadata analyticsMethodMetadata) {
         return modulesService.addAnalyticsMethodToAnalyticsGoal(AnalyticsGoalId, analyticsMethodMetadata);
     }
@@ -221,7 +248,7 @@ public class AnalyticsModulesController {
     public
     @ResponseBody
     AnalyticsGoal updateAnalyticsGoal(@RequestBody AnalyticsGoal AnalyticsGoal,
-                                      @PathVariable String id) {
+                                      @PathVariable long id) {
         return modulesService.updateAnalyticsGoal(AnalyticsGoal, id);
     }
 
@@ -237,7 +264,7 @@ public class AnalyticsModulesController {
     )
     public
     @ResponseBody
-    GenericResponseDTO deleteAnalyticsGoal(@PathVariable String id) {
+    GenericResponseDTO deleteAnalyticsGoal(@PathVariable long id) {
         modulesService.deleteAnalyticsGoal(id);
         return new GenericResponseDTO(HttpStatus.OK.value(),
                 "Analytics Goal with id {" + id + "} deleted");

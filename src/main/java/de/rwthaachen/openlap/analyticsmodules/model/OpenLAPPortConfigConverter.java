@@ -1,24 +1,24 @@
 package de.rwthaachen.openlap.analyticsmodules.model;
 
-import DataSet.OLAPPortConfiguration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.rwthaachen.openlap.dataset.OpenLAPPortConfig;
 
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
 import java.io.IOException;
 
 /**
- * An object Mapper for the DataAccessLayer to convert an OLAPPortConfiguration sets to a String during persistence
+ * An object Mapper for the DataAccessLayer to convert an OpenLAPPortConfig sets to a String during persistence
  * operations
  */
 @Converter
-public class OLAPPortConfigurationConverter implements AttributeConverter<OLAPPortConfiguration, String> {
+public class OpenLAPPortConfigConverter implements AttributeConverter<OpenLAPPortConfig, String> {
 
     ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public String convertToDatabaseColumn(OLAPPortConfiguration attribute) {
+    public String convertToDatabaseColumn(OpenLAPPortConfig attribute) {
         try {
             return mapper.writeValueAsString(attribute);
         } catch (JsonProcessingException e) {
@@ -28,9 +28,9 @@ public class OLAPPortConfigurationConverter implements AttributeConverter<OLAPPo
     }
 
     @Override
-    public OLAPPortConfiguration convertToEntityAttribute(String dbData) {
+    public OpenLAPPortConfig convertToEntityAttribute(String dbData) {
         try {
-            return mapper.readValue(dbData, OLAPPortConfiguration.class);
+            return mapper.readValue(dbData, OpenLAPPortConfig.class);
         } catch (IOException e) {
             e.printStackTrace();
             return null;

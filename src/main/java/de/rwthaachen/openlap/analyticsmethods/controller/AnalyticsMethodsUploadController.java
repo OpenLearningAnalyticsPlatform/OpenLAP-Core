@@ -1,8 +1,5 @@
 package de.rwthaachen.openlap.analyticsmethods.controller;
 
-import DataSet.OLAPColumnConfigurationData;
-import DataSet.OLAPDataSetConfigurationValidationResult;
-import DataSet.OLAPPortConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.rwthaachen.openlap.analyticsmethods.exceptions.AnalyticsMethodLoaderException;
 import de.rwthaachen.openlap.analyticsmethods.exceptions.AnalyticsMethodNotFoundException;
@@ -11,6 +8,9 @@ import de.rwthaachen.openlap.analyticsmethods.exceptions.AnalyticsMethodsUploadE
 import de.rwthaachen.openlap.analyticsmethods.model.AnalyticsMethodMetadata;
 import de.rwthaachen.openlap.analyticsmethods.service.AnalyticsMethodsService;
 import de.rwthaachen.openlap.common.controller.GenericResponseDTO;
+import de.rwthaachen.openlap.dataset.OpenLAPColumnConfigData;
+import de.rwthaachen.openlap.dataset.OpenLAPDataSetConfigValidationResult;
+import de.rwthaachen.openlap.dataset.OpenLAPPortConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -59,7 +59,7 @@ public class AnalyticsMethodsUploadController {
             )
     public
     @ResponseBody
-    AnalyticsMethodMetadata viewAnalyticsMethod(@PathVariable String id) {
+    AnalyticsMethodMetadata viewAnalyticsMethod(@PathVariable long id) {
         return analyticsMethodsService.viewAnalyticsMethod(id);
     }
 
@@ -119,7 +119,7 @@ public class AnalyticsMethodsUploadController {
     (
             @RequestParam("methodMetadata") String methodMetadataText,
             @RequestParam("jarBundle") MultipartFile jarBundle,
-            @PathVariable String id
+            @PathVariable long id
     ) {
         ObjectMapper mapper = new ObjectMapper();
         AnalyticsMethodMetadata methodMetadata = null;
@@ -138,11 +138,11 @@ public class AnalyticsMethodsUploadController {
     }
 
     /**
-     * HTTP endpoint handler method that allows to validate an OLAPPortConfiguration of a specific AnalyticsMethod.
+     * HTTP endpoint handler method that allows to validate an OpenLAPPortConfig of a specific AnalyticsMethod.
      *
-     * @param configurationMapping The OLAPPortConfiguration to be validated
-     * @param id                   The ID of the AnalyticsMethod Metadata to be validated against the OLAPPortConfiguration.
-     * @return An Object with the validation information of the OLAPPortConfiguration against the specified Analytics
+     * @param configurationMapping The OpenLAPPortConfig to be validated
+     * @param id                   The ID of the AnalyticsMethod Metadata to be validated against the OpenLAPPortConfig.
+     * @return An Object with the validation information of the OpenLAPPortConfig against the specified Analytics
      * Method.
      */
     @RequestMapping
@@ -152,20 +152,20 @@ public class AnalyticsMethodsUploadController {
             )
     public
     @ResponseBody
-    OLAPDataSetConfigurationValidationResult validateConfiguration
+    OpenLAPDataSetConfigValidationResult validateConfiguration
     (
-            @RequestBody OLAPPortConfiguration configurationMapping,
-            @PathVariable String id
+            @RequestBody OpenLAPPortConfig configurationMapping,
+            @PathVariable long id
     ) {
         return analyticsMethodsService.validateConfiguration(id, configurationMapping);
     }
 
     /**
-     * HTTP endpoint handler method that returns the OLAPColumnConfigurationData of the input ports of a
+     * HTTP endpoint handler method that returns the OpenLAPColumnConfigData of the input ports of a
      * specific AnalyticsMethod
      *
      * @param id ID of the AnalyticsMethod Metadata
-     * @return A list of OLAPColumnConfigurationData corresponding to the input ports of the AnalyticsMethod
+     * @return A list of OpenLAPColumnConfigData corresponding to the input ports of the AnalyticsMethod
      */
     @RequestMapping
             (
@@ -174,20 +174,20 @@ public class AnalyticsMethodsUploadController {
             )
     public
     @ResponseBody
-    List<OLAPColumnConfigurationData> getInputPorts
+    List<OpenLAPColumnConfigData> getInputPorts
     (
-            @PathVariable String id
+            @PathVariable long id
     ) {
         return analyticsMethodsService.GetInputPortsForMethod(id);
     }
 
 
     /**
-     * HTTP endpoint handler method that returns the OLAPColumnConfigurationData of the output ports of a
+     * HTTP endpoint handler method that returns the OpenLAPColumnConfigData of the output ports of a
      * specific AnalyticsMethod
      *
      * @param id ID of the AnalyticsMethod Metadata
-     * @return A list of OLAPColumnConfigurationData corresponding to the output ports of the AnalyticsMethod
+     * @return A list of OpenLAPColumnConfigData corresponding to the output ports of the AnalyticsMethod
      */
     @RequestMapping
             (
@@ -196,9 +196,9 @@ public class AnalyticsMethodsUploadController {
             )
     public
     @ResponseBody
-    List<OLAPColumnConfigurationData> getOutputPorts
+    List<OpenLAPColumnConfigData> getOutputPorts
     (
-            @PathVariable String id
+            @PathVariable long id
     ) {
         return analyticsMethodsService.GetOutputPortsForMethod(id);
     }
@@ -215,7 +215,7 @@ public class AnalyticsMethodsUploadController {
     )
     public
     @ResponseBody
-    GenericResponseDTO deleteAnalyticsMethod(@PathVariable String id) {
+    GenericResponseDTO deleteAnalyticsMethod(@PathVariable long id) {
         analyticsMethodsService.deleteAnalyticsMethod(id);
         return new GenericResponseDTO(HttpStatus.OK.value(),
                 "Analytics Method with id {" + id + "} deleted");

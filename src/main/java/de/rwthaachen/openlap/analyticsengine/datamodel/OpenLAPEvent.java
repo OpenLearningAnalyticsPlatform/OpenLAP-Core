@@ -1,22 +1,24 @@
 package de.rwthaachen.openlap.analyticsengine.datamodel;
 
 import javax.persistence.*;
+import java.util.Collection;
 
 /**
  * Created by Arham Muslim
- * on 24-Feb-16.
+ * on 21-Sep-16.
  */
 @Entity
 @Table(name = "Event", schema = "dbo", catalog = "LADB")
 public class OpenLAPEvent {
     private int eventId;
-    private Integer uId;
-    private Integer cId;
     private Integer timestamp;
     private String session;
     private String action;
     private String platform;
     private String source;
+    private Collection<OpenLAPEntity> entitiesByEventId;
+    private OpenLAPUsers usersByUId;
+    private OpenLAPCategory categoryByCId;
 
     @Id
     @Column(name = "Event_Id", nullable = false)
@@ -26,26 +28,6 @@ public class OpenLAPEvent {
 
     public void setEventId(int eventId) {
         this.eventId = eventId;
-    }
-
-    @Basic
-    @Column(name = "U_Id", nullable = true)
-    public Integer getuId() {
-        return uId;
-    }
-
-    public void setuId(Integer uId) {
-        this.uId = uId;
-    }
-
-    @Basic
-    @Column(name = "C_ID", nullable = true)
-    public Integer getcId() {
-        return cId;
-    }
-
-    public void setcId(Integer cId) {
-        this.cId = cId;
     }
 
     @Basic
@@ -106,8 +88,6 @@ public class OpenLAPEvent {
         OpenLAPEvent that = (OpenLAPEvent) o;
 
         if (eventId != that.eventId) return false;
-        if (uId != null ? !uId.equals(that.uId) : that.uId != null) return false;
-        if (cId != null ? !cId.equals(that.cId) : that.cId != null) return false;
         if (timestamp != null ? !timestamp.equals(that.timestamp) : that.timestamp != null) return false;
         if (session != null ? !session.equals(that.session) : that.session != null) return false;
         if (action != null ? !action.equals(that.action) : that.action != null) return false;
@@ -120,13 +100,40 @@ public class OpenLAPEvent {
     @Override
     public int hashCode() {
         int result = eventId;
-        result = 31 * result + (uId != null ? uId.hashCode() : 0);
-        result = 31 * result + (cId != null ? cId.hashCode() : 0);
         result = 31 * result + (timestamp != null ? timestamp.hashCode() : 0);
         result = 31 * result + (session != null ? session.hashCode() : 0);
         result = 31 * result + (action != null ? action.hashCode() : 0);
         result = 31 * result + (platform != null ? platform.hashCode() : 0);
         result = 31 * result + (source != null ? source.hashCode() : 0);
         return result;
+    }
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "eventByEventFk")
+    public Collection<OpenLAPEntity> getEntitiesByEventId() {
+        return entitiesByEventId;
+    }
+
+    public void setEntitiesByEventId(Collection<OpenLAPEntity> entitiesByEventId) {
+        this.entitiesByEventId = entitiesByEventId;
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "U_Id", referencedColumnName = "U_Id")
+    public OpenLAPUsers getUsersByUId() {
+        return usersByUId;
+    }
+
+    public void setUsersByUId(OpenLAPUsers usersByUId) {
+        this.usersByUId = usersByUId;
+    }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "C_ID", referencedColumnName = "C_Id")
+    public OpenLAPCategory getCategoryByCId() {
+        return categoryByCId;
+    }
+
+    public void setCategoryByCId(OpenLAPCategory categoryByCId) {
+        this.categoryByCId = categoryByCId;
     }
 }

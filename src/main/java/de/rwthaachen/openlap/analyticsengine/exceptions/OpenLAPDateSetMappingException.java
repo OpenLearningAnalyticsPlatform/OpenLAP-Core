@@ -13,6 +13,6 @@ public class OpenLAPDateSetMappingException extends RuntimeException {
 
     public OpenLAPDateSetMappingException(String message) {
         super(message);
-        log.error("OpenLAPDateSet Mapping: " + message);
+        log.error("OpenLAPDateSetMappingException: " + message);
     }
 }
