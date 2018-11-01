@@ -27,6 +27,7 @@ public class Question {
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.ALL })
     @JoinTable(name = "Question_Triad", joinColumns = { @JoinColumn(name = "question_id") }, inverseJoinColumns = { @JoinColumn(name = "triad_id") })
+    @OrderBy(value="id asc")
     private Set<Triad> triads = new HashSet<Triad>();
 
     public Question() {

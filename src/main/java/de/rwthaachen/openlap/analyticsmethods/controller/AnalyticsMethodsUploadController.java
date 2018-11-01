@@ -11,6 +11,7 @@ import de.rwthaachen.openlap.common.controller.GenericResponseDTO;
 import de.rwthaachen.openlap.dataset.OpenLAPColumnConfigData;
 import de.rwthaachen.openlap.dataset.OpenLAPDataSetConfigValidationResult;
 import de.rwthaachen.openlap.dataset.OpenLAPPortConfig;
+import de.rwthaachen.openlap.dynamicparam.OpenLAPDynamicParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -167,17 +168,8 @@ public class AnalyticsMethodsUploadController {
      * @param id ID of the AnalyticsMethod Metadata
      * @return A list of OpenLAPColumnConfigData corresponding to the input ports of the AnalyticsMethod
      */
-    @RequestMapping
-            (
-                    value = "AnalyticsMethods/{id}/getInputPorts",
-                    method = RequestMethod.GET
-            )
-    public
-    @ResponseBody
-    List<OpenLAPColumnConfigData> getInputPorts
-    (
-            @PathVariable long id
-    ) {
+    @RequestMapping(value = "AnalyticsMethods/{id}/getInputPorts",method = RequestMethod.GET)
+    public @ResponseBody List<OpenLAPColumnConfigData> getInputPorts(@PathVariable long id) {
         return analyticsMethodsService.GetInputPortsForMethod(id);
     }
 
@@ -189,18 +181,22 @@ public class AnalyticsMethodsUploadController {
      * @param id ID of the AnalyticsMethod Metadata
      * @return A list of OpenLAPColumnConfigData corresponding to the output ports of the AnalyticsMethod
      */
-    @RequestMapping
-            (
-                    value = "AnalyticsMethods/{id}/getOutputPorts",
-                    method = RequestMethod.GET
-            )
-    public
-    @ResponseBody
-    List<OpenLAPColumnConfigData> getOutputPorts
-    (
-            @PathVariable long id
-    ) {
+    @RequestMapping(value = "AnalyticsMethods/{id}/getOutputPorts", method = RequestMethod.GET)
+    public @ResponseBody List<OpenLAPColumnConfigData> getOutputPorts (@PathVariable long id) {
         return analyticsMethodsService.GetOutputPortsForMethod(id);
+    }
+
+    /**
+     * HTTP endpoint handler method that returns the OpenLAPDynamicParam of the dynamic paramaters of a
+     * specific AnalyticsMethod
+     *
+     * @param id ID of the AnalyticsMethod Metadata
+     * @return A list of OpenLAPColumnConfigData corresponding to the output ports of the AnalyticsMethod
+     */
+    @RequestMapping(value = "AnalyticsMethods/{id}/getDynamicParams", method = RequestMethod.GET)
+    public @ResponseBody List<OpenLAPDynamicParam> GetDynamicParams (
+            @PathVariable long id ) {
+        return analyticsMethodsService.GetDynamicParamsForMethod(id);
     }
 
     /**

@@ -11,6 +11,7 @@ import de.rwthaachen.openlap.analyticsmethods.model.AnalyticsMethodMetadata;
 import de.rwthaachen.openlap.dataset.OpenLAPColumnConfigData;
 import de.rwthaachen.openlap.dataset.OpenLAPDataSetConfigValidationResult;
 import de.rwthaachen.openlap.dataset.OpenLAPPortConfig;
+import de.rwthaachen.openlap.dynamicparam.OpenLAPDynamicParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -53,7 +56,7 @@ public class AnalyticsMethodsService {
     public List<AnalyticsMethodMetadata> viewAllAnalyticsMethods() {
         ArrayList<AnalyticsMethodMetadata> result = new ArrayList<AnalyticsMethodMetadata>();
         // (A ::B ) denotes A consumer execute B with the iterator given.
-        analyticsMethodsRepository.findAll().forEach(result::add);
+        analyticsMethodsRepository.findAllByOrderByNameAsc().forEach(result::add);
         return result;
     }
 
@@ -243,6 +246,12 @@ public class AnalyticsMethodsService {
         return getPortsForMethod(id, OUTPUT_PORTS);
     }
 
+    public List<OpenLAPDynamicParam> GetDynamicParamsForMethod(long id) {
+        AnalyticsMethod method = loadAnalyticsMethodInstance(id);
+
+        return method.getParams().getParamsAsList(false);
+    }
+
     /**
      * Returns a List of OpenLAPColumnConfigData of either the Input ports or output ports of the Analytics Method
      * of the given <code>id</code>.
@@ -258,14 +267,22 @@ public class AnalyticsMethodsService {
         AnalyticsMethod method = loadAnalyticsMethodInstance(id);
         //log.info("Attempting to return " + portParameter + " ports of the method with id {" + id + "}");
 
+        List<OpenLAPColumnConfigData> ports;
+
         switch (portParameter) {
             case INPUT_PORTS:
-                return method.getInputPorts();
+                ports = method.getInputPorts();
+                break;
             case OUTPUT_PORTS:
-                return method.getOutputPorts();
+                ports = method.getOutputPorts();
+                break;
             default:
                 throw new AnalyticsMethodsBadRequestException("Only can return Inputs or Outputs");
         }
+
+        Collections.sort(ports, (OpenLAPColumnConfigData o1, OpenLAPColumnConfigData o2) -> (o1.getTitle().compareTo(o2.getTitle())));
+
+        return ports;
     }
 
     /**

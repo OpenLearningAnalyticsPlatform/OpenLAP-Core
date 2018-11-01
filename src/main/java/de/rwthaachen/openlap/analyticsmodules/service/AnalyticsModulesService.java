@@ -239,7 +239,7 @@ public class AnalyticsModulesService {
      * @return returns an ArrayList with all the existing AnalyticsGoals.
      */
     public List<AnalyticsGoal> getActiveAnalyticsGoals() {
-        return analyticsGoalRepository.findByIsActive(true);
+        return analyticsGoalRepository.findByIsActiveOrderByNameAsc(true);
     }
 
     /**

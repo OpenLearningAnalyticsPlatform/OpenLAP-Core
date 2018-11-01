@@ -4,14 +4,33 @@
         "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
 <hibernate-configuration>
     <session-factory>
-        <property name="connection.url">jdbc:sqlserver://137.226.231.13\cildev:1433;databaseName=LADB</property>
+        <property name="connection.url">jdbc:sqlserver://localserver:1433;databaseName=LADB</property>
         <property name="connection.driver_class">com.microsoft.sqlserver.jdbc.SQLServerDriver</property>
-        <property name="connection.username">sa</property>
-        <property name="connection.password">klm2010!DEMO</property>
-        <mapping class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategory"/>
+
+        <property name="connection.username">xxxxxxxxxx</property>
+        <property name="connection.password">xxxxxxxxxx</property>
+
+        <property name="connection.pool_size">10</property>
+
+        <property name="hibernate.connection.provider_class">org.hibernate.c3p0.internal.C3P0ConnectionProvider</property>
+        <property name="hibernate.c3p0.min_size">5</property>
+        <property name="hibernate.c3p0.max_size">20</property>
+        <property name="hibernate.c3p0.max_statements">0</property>
+        <!--<property name="hibernate.c3p0.max_statements">100</property>-->
+        <property name="hibernate.c3p0.acquire_increment">1</property>
+        <property name="hibernate.c3p0.idle_test_period">300</property>
+        <property name="hibernate.c3p0.timeout">5000</property>
+        <property name="hibernate.c3p0.unreturnedConnectionTimeout">400</property>
+        <property name="hibernate.c3p0.debugUnreturnedConnectionStackTraces">true</property>
+        <property name="hibernate.c3p0.statementCacheNumDeferredCloseThreads">1</property>
+
+
         <mapping resource="LADB-Mapping.xml"/>
+        <mapping class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategory"/>
+        <mapping class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPCategoryKeysMapping"/>
         <mapping class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEntity"/>
         <mapping class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPEvent"/>
+        <mapping class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPKeysSpecifications"/>
         <mapping class="de.rwthaachen.openlap.analyticsengine.datamodel.OpenLAPUsers"/>
         <!-- DB schema will be updated if needed -->
         <!-- <property name="hbm2ddl.auto">update</property> -->

@@ -10,5 +10,5 @@ import java.util.List;
  * It is based on the spring CrudRepository.
  */
 public interface AnalyticsGoalRepository extends CrudRepository<AnalyticsGoal, Long> {
-    List<AnalyticsGoal> findByIsActive(boolean isActive);
+    List<AnalyticsGoal> findByIsActiveOrderByNameAsc(boolean isActive);
 }

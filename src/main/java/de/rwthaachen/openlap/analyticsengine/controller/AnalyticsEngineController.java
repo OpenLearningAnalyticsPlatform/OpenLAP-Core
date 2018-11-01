@@ -10,6 +10,7 @@ import de.rwthaachen.openlap.analyticsmethods.model.AnalyticsMethodMetadata;
 import de.rwthaachen.openlap.analyticsmodules.model.AnalyticsGoal;
 import de.rwthaachen.openlap.common.controller.GenericResponseDTO;
 import de.rwthaachen.openlap.dataset.OpenLAPColumnConfigData;
+import de.rwthaachen.openlap.dynamicparam.OpenLAPDynamicParam;
 import de.rwthaachen.openlap.visualizer.core.dtos.response.VisualizationFrameworkDetailsResponse;
 import de.rwthaachen.openlap.visualizer.core.dtos.response.VisualizationFrameworksDetailsResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +47,8 @@ public class AnalyticsEngineController {
         String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
 
         try {
-            return analyticsEngineService.executeIndicator(allRequestParams, baseUrl);
+            //return analyticsEngineService.executeIndicator(allRequestParams, baseUrl);
+            return "Outdated request call. Please get new indicator request code from OpenLAP.";
         } catch (Exception exc) {
             return exc.getMessage();
         }
@@ -69,19 +71,6 @@ public class AnalyticsEngineController {
         }
     }
 
-    @RequestMapping(value = "/GetCompositeIndicatorPreview", method = RequestMethod.POST)
-    public
-    @ResponseBody
-    IndicatorPreviewResponse GetCompositeIndicatorPreview(
-            @RequestBody IndicatorPreviewRequest previewRequest,
-            @RequestParam Map<String, String> allRequestParams,
-            HttpServletRequest request) {
-
-        String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
-
-        return analyticsEngineService.getCompIndicatorPreview(previewRequest, allRequestParams, baseUrl);
-    }
-
     @RequestMapping(value = "/GetIndicatorPreview", method = RequestMethod.POST)
     public
     @ResponseBody
@@ -92,8 +81,35 @@ public class AnalyticsEngineController {
 
         String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
 
-        return analyticsEngineService.getIndicatorPreview(previewRequest, allRequestParams, baseUrl);
+        return analyticsEngineService.getIndicatorPreview(previewRequest, baseUrl);
     }
+
+    @RequestMapping(value = "/GetCompositeIndicatorPreview", method = RequestMethod.POST)
+    public
+    @ResponseBody
+    IndicatorPreviewResponse GetCompositeIndicatorPreview(
+            @RequestBody IndicatorPreviewRequest previewRequest,
+            @RequestParam Map<String, String> allRequestParams,
+            HttpServletRequest request) {
+
+        String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
+
+        return analyticsEngineService.getCompIndicatorPreview(previewRequest, baseUrl);
+    }
+
+    @RequestMapping(value = "/GetMLAIIndicatorPreview", method = RequestMethod.POST)
+    public
+    @ResponseBody
+    IndicatorPreviewResponse GetMLAIIndicatorPreview(
+            @RequestBody IndicatorPreviewRequest previewRequest,
+            @RequestParam Map<String, String> allRequestParams,
+            HttpServletRequest request) {
+
+        String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
+
+        return analyticsEngineService.getMLAIIndicatorPreview(previewRequest, baseUrl);
+    }
+
 
     @RequestMapping(value = "/SaveQuestionAndIndicators", method = RequestMethod.POST)
     public
@@ -142,8 +158,10 @@ public class AnalyticsEngineController {
     @RequestMapping(value = {"/GetGoals/", "/GetActiveGoals"}, method = RequestMethod.GET)
     public
     @ResponseBody
-    List<AnalyticsGoal> GetActiveGoals(@RequestParam Map<String, String> allRequestParams, HttpServletRequest request) {
-        return analyticsEngineService.getActiveGoals(request);
+    List<AnalyticsGoal> GetActiveGoals(@RequestParam(value = "uid", required = false) String uid,
+                                       @RequestParam Map<String, String> allRequestParams,
+                                       HttpServletRequest request) {
+        return analyticsEngineService.getActiveGoals(uid, request);
     }
 
     @RequestMapping(value = {"/SaveGoal/", "/SaveGoal"}, method = RequestMethod.GET)
@@ -219,13 +237,14 @@ public class AnalyticsEngineController {
     public
     @ResponseBody
     List<QuestionResponse> SearchQuestions(@RequestParam String searchParameter,
-                                                      @RequestParam boolean exactSearch,
-                                                      @RequestParam String colName,
-                                                      @RequestParam String sortDirection,
-                                                      @RequestParam boolean sort,
-                                                      @RequestParam Map<String, String> allRequestParams,
-                                                      HttpServletRequest request) {
-        return analyticsEngineService.searchQuestions(searchParameter, exactSearch, colName, sortDirection, sort, request);
+                                           @RequestParam boolean exactSearch,
+                                           @RequestParam String colName,
+                                           @RequestParam String sortDirection,
+                                           @RequestParam boolean sort,
+                                           @RequestParam(value = "uid", required = false) String uid,
+                                           @RequestParam Map<String, String> allRequestParams,
+                                           HttpServletRequest request) {
+        return analyticsEngineService.searchQuestions(searchParameter, exactSearch, colName, sortDirection, sort, uid, request);
     }
 
     @RequestMapping(value = {"/GetSortedQuestions/", "/GetSortedQuestions"}, method = RequestMethod.GET)
@@ -256,8 +275,12 @@ public class AnalyticsEngineController {
     @RequestMapping(value = {"/GetDataColumnsByCatID/", "/GetDataColumnsByCatID"}, method = RequestMethod.GET)
     public
     @ResponseBody
-    List<OpenLAPColumnConfigData> GetDataColumnsByIDs(@RequestParam String categoryIDs, @RequestParam Map<String, String> allRequestParams, HttpServletRequest request) {
-        return analyticsEngineService.getDataColumnsByIDs(categoryIDs, request);
+    List<OpenLAPColumnConfigData> GetDataColumnsByIDs(@RequestParam String categoryIDs,
+                                                      @RequestParam(value = "source", required = false) String source,
+                                                      @RequestParam(value = "platform", required = false) String platform,
+                                                      @RequestParam(value = "action", required = false) String action,
+                                                      HttpServletRequest request) {
+        return analyticsEngineService.getDataColumnsByIDs(categoryIDs, source, platform, action, request);
     }
 
     @RequestMapping(value = {"/GetDataColumnsByCatName/", "/GetDataColumnsByCatName"}, method = RequestMethod.GET)
@@ -376,6 +399,13 @@ public class AnalyticsEngineController {
         return analyticsEngineService.getAnalyticsMethodOutputs(id, request);
     }
 
+    @RequestMapping(value = {"/GetAnalyticsMethodParams/", "/GetAnalyticsMethodParams"}, method = RequestMethod.GET)
+    public
+    @ResponseBody
+    List<OpenLAPDynamicParam> GetAnalyticsMethodParams(@RequestParam long id, @RequestParam Map<String, String> allRequestParams, HttpServletRequest request) {
+        return analyticsEngineService.getAnalyticsMethodDynamicParams(id, request);
+    }
+
     @RequestMapping(value = {"/GetVisualizationMethodInputs/", "/GetVisualizationMethodInputs"}, method = RequestMethod.GET)
     public
     @ResponseBody
@@ -400,8 +430,8 @@ public class AnalyticsEngineController {
 
     @RequestMapping(value = {"/test/", "/test"}, method = RequestMethod.GET)
     public
-    @ResponseBody String test(@RequestParam String id, @RequestParam Map<String, String> allRequestParams, HttpServletRequest request) {
-        return analyticsEngineService.testing(id, request);
+    @ResponseBody String test(@RequestParam Map<String, String> allRequestParams, HttpServletRequest request) {
+        return analyticsEngineService.testing(request);
     }
 
     //region Exception Handling

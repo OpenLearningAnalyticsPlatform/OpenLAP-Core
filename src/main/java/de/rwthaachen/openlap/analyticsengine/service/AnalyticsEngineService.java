@@ -1,5 +1,6 @@
 package de.rwthaachen.openlap.analyticsengine.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import core.AnalyticsMethod;
 import core.exceptions.AnalyticsMethodInitializationException;
@@ -25,19 +26,18 @@ import de.rwthaachen.openlap.analyticsmethods.model.AnalyticsMethodMetadata;
 import de.rwthaachen.openlap.analyticsmethods.service.AnalyticsMethodsService;
 import de.rwthaachen.openlap.analyticsmodules.model.*;
 import de.rwthaachen.openlap.dataset.*;
+import de.rwthaachen.openlap.dynamicparam.OpenLAPDynamicParam;
 import de.rwthaachen.openlap.exceptions.OpenLAPDataColumnException;
 import de.rwthaachen.openlap.visualizer.core.dtos.request.GenerateVisualizationCodeRequest;
 import de.rwthaachen.openlap.visualizer.core.dtos.request.ValidateVisualizationMethodConfigurationRequest;
 import de.rwthaachen.openlap.visualizer.core.dtos.response.*;
 import org.apache.commons.lang3.StringUtils;
-import org.crsh.console.jline.internal.Log;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
-import org.hibernate.mapping.Array;
 import org.hibernate.transform.AliasToEntityMapResultTransformer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,10 +62,6 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -99,6 +95,9 @@ public class AnalyticsEngineService {
 
     private SessionFactory factory;
 
+    private long executionCount = 0;
+    private long previewCount = 0;
+
     //endregion
 
     //region Indicator Execution
@@ -110,212 +109,191 @@ public class AnalyticsEngineService {
         factory = configuration.buildSessionFactory(builder.build());
     }
 
-    public String executeIndicator(Map<String, String> params, String baseUrl) {
-        //System.out.println("Start executing the indicator with Triad id: " + params.getOrDefault("tid", ""));
-        log.info("Start executing the indicator with Triad id: " + params.getOrDefault("tid", ""));
-
-        ObjectMapper mapper = new ObjectMapper();
-
-        Date startDate, endDate;
-        long uStartDate = 0, uEndDate = 0;
-
-        try {
-            if (params.containsKey("start") && !params.getOrDefault("start", "").equals("")) {
-                startDate = new SimpleDateFormat("yyyyMMdd").parse(params.getOrDefault("start", ""));
-                uStartDate = startDate.getTime() / 1000L;
-            }
-            if (params.containsKey("end") && !params.getOrDefault("end", "").equals("")) {
-                endDate = new SimpleDateFormat("yyyyMMdd").parse(params.getOrDefault("end", ""));
-                uEndDate = endDate.getTime() / 1000L;
-            }
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-
-
-        Triad triad;
-
-        try {
-            String triadJSON = performGetRequest(baseUrl + "/AnalyticsModules/Triads/" + params.getOrDefault("tid", ""));
-            triad = mapper.readValue(triadJSON, Triad.class);
-        } catch (Exception exc) {
-            throw new ItemNotFoundException("Indicator with triad id '" + params.getOrDefault("tid", "") + "' not found.", "1");
-        }
-
-
-        if (triad == null)
-            throw new ItemNotFoundException("Indicator with triad id '" + params.getOrDefault("tid", "") + "' not found.","1");
-
-        //try {
-        //    System.out.println("Triad from database : " + mapper.writeValueAsString(triad));
-        //} catch (Exception exc) {}
-
-        OpenLAPDataSet analyzedDataSet = null;
-
-        //Indicator curInd = getIndicatorById(triad.getIndicatorReference().getId());
-        Indicator curInd = getIndicatorById(triad.getIndicatorReference().getIndicators().get("0").getId());
-
-        if (curInd == null) {
-            throw new ItemNotFoundException("Indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "' not found.", "1");
-        }
-
-        //if(triad.getIndicatorReference().getIndicators().size()==1) {
-        if(!curInd.isComposite()) {
-
-            //Replacing the courseid in the query with the actual coursenumber coming from the request code.
-            String courseID = params.getOrDefault("cid", "");
-            String curIndQuery = curInd.getQuery().getQueries().get("0");
-            curIndQuery = curIndQuery.replace("CourseRoomID", courseID);
-
-            //Adding the time filter for start of data
-            String uStartDateStr = "";
-            if (uStartDate > 0)
-                uStartDateStr = "AND E.Timestamp >= " + uStartDate;
-            curIndQuery = curIndQuery.replace("uStartDate", uStartDateStr);
-
-            //Adding the time filter for end of data
-            String uEndDateStr = "";
-            if (uEndDate > 0)
-                uEndDateStr = "AND E.Timestamp <= " + uEndDate;
-            curIndQuery = curIndQuery.replace("uEndDate", uEndDateStr);
-
-            OpenLAPDataSet queryDataSet = executeSQLQuery(curIndQuery);
-
-            if (queryDataSet == null) {
-                throw new ItemNotFoundException("No data found for the indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "'.", "1");
-            }
-
-            //try {
-            //    System.out.println("Raw Data as OpenLAP-DataSet");
-            //    System.out.println(mapper.writeValueAsString(queryDataSet));
-            //} catch (Exception exc) { }
-
-            //Validating and applying the analytics method
-
-
-            try {
-/*
-            // Skipping this validate configuration step while executing the indicator as the configuration is already validated in the indicator generation step
-
-            String dataToMethodConfigJSON = triad.getIndicatorToAnalyticsMethodMapping().toString();
-            String methodValidJSON = performPutRequest(baseUrl + "/AnalyticsMethods/"+triad.getAnalyticsMethodReference().getId()+"/validateConfiguration", dataToMethodConfigJSON);
-
-            OpenLAPDataSetConfigValidationResult methodValid =  mapper.readValue(methodValidJSON, OpenLAPDataSetConfigValidationResult.class);
-
-            if(methodValid.isValid()) {
-*/
-
-                try {
-                    AnalyticsMethod method = analyticsMethodsService.loadAnalyticsMethodInstance(triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId());
-                    method.initialize(queryDataSet, triad.getIndicatorToAnalyticsMethodMapping().getPortConfigs().get("0"));
-                    analyzedDataSet = method.execute();
-                } catch (Exception ex) {
-                    throw new ItemNotFoundException(ex.getMessage(), "1");
-                }
-            } catch (AnalyticsMethodInitializationException amexc) {
-                throw new ItemNotFoundException(amexc.getMessage(), "1");
-            } catch (Exception exc) {
-                throw new ItemNotFoundException(exc.getMessage(), "1");
-            }
-
-
-            if (analyzedDataSet == null) {
-                throw new ItemNotFoundException("No data returned from the analytics methods with id '" + triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId() + "'.", "1");
-            }
-
-        }
-        else {}
-
-        //try {
-        //    System.out.println("Analyzed data using Analytics Method '" + triad.getAnalyticsMethodReference().getName() + "' as OpenLAP-DataSet");
-        //    System.out.println(mapper.writeValueAsString(analyzedDataSet));
-        //} catch (Exception exc) { }
-
-        //Visualizing the analyzed data
-        String indicatorCode = "";
-        try {
-
-            Map<String, Object> additionalParams = new HashMap<String, Object>();
-
-            for (Map.Entry<String, String> entry : params.entrySet()) {
-                additionalParams.put(entry.getKey(), entry.getValue());
-            }
-
-            GenerateVisualizationCodeRequest visualRequest = new GenerateVisualizationCodeRequest();
-            visualRequest.setFrameworkId(triad.getVisualizationReference().getFrameworkId());
-            //visualRequest.setFrameworkName(triad.getVisualizationReference().getFrameworkName());
-            visualRequest.setMethodId(triad.getVisualizationReference().getMethodId());
-            //visualRequest.setMethodName(triad.getVisualizationReference().getMethodName());
-            visualRequest.setDataSet(analyzedDataSet);
-            visualRequest.setPortConfiguration(triad.getAnalyticsMethodToVisualizationMapping());
-            visualRequest.setParams(additionalParams);
-
-            String visualRequestJSON = mapper.writeValueAsString(visualRequest);
-
-//            String visualResponseJSON = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON);
-//            GenerateVisualizationCodeResponse visualResponse = mapper.readValue(visualResponseJSON, GenerateVisualizationCodeResponse.class);
-
-            GenerateVisualizationCodeResponse visualResponse = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON, GenerateVisualizationCodeResponse.class);
-
-            indicatorCode = visualResponse.getVisualizationCode();
-        } catch (Exception exc) {
-            throw new ItemNotFoundException(exc.getMessage(), "1");
-        }
-
-        //try {
-        //    System.out.println("Indicator Visualization Code send back to the client: ");
-        //    System.out.println(indicatorCode);
-        //} catch (Exception exc) {}
-
-        return encodeURIComponent(indicatorCode);
-    }
+//    public String executeIndicator(Map<String, String> params, String baseUrl) {
+//        //System.out.println("Start executing the indicator with Triad id: " + params.getOrDefault("tid", ""));
+//        log.info("Start executing the indicator with Triad id: " + params.getOrDefault("tid", ""));
+//
+//        ObjectMapper mapper = new ObjectMapper();
+//
+//        Date startDate, endDate;
+//        long uStartDate = 0, uEndDate = 0;
+//
+//        try {
+//            if (params.containsKey("start") && !params.getOrDefault("start", "").equals("")) {
+//                startDate = new SimpleDateFormat("yyyyMMdd").parse(params.getOrDefault("start", ""));
+//                uStartDate = startDate.getTime() / 1000L;
+//            }
+//            if (params.containsKey("end") && !params.getOrDefault("end", "").equals("")) {
+//                endDate = new SimpleDateFormat("yyyyMMdd").parse(params.getOrDefault("end", ""));
+//                uEndDate = endDate.getTime() / 1000L;
+//            }
+//        } catch (ParseException e) {
+//            e.printStackTrace();
+//        }
+//
+//
+//        Triad triad;
+//
+//        try {
+//            String triadJSON = performGetRequest(baseUrl + "/AnalyticsModules/Triads/" + params.getOrDefault("tid", ""));
+//            triad = mapper.readValue(triadJSON, Triad.class);
+//        } catch (Exception exc) {
+//            throw new ItemNotFoundException("Indicator with triad id '" + params.getOrDefault("tid", "") + "' not found.", "1");
+//        }
+//
+//
+//        if (triad == null)
+//            throw new ItemNotFoundException("Indicator with triad id '" + params.getOrDefault("tid", "") + "' not found.","1");
+//
+//        //try {
+//        //    System.out.println("Triad from database : " + mapper.writeValueAsString(triad));
+//        //} catch (Exception exc) {}
+//
+//        OpenLAPDataSet analyzedDataSet = null;
+//
+//        //Indicator curInd = getIndicatorById(triad.getIndicatorReference().getId());
+//        Indicator curInd = getIndicatorById(triad.getIndicatorReference().getIndicators().get("0").getId());
+//
+//        if (curInd == null) {
+//            throw new ItemNotFoundException("Indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "' not found.", "1");
+//        }
+//
+//        //if(triad.getIndicatorReference().getIndicators().size()==1) {
+//        if(!curInd.isComposite()) {
+//
+//            //Replacing the courseid in the query with the actual coursenumber coming from the request code.
+//            String courseID = params.getOrDefault("cid", "");
+//            String curIndQuery = curInd.getQuery().getQueries().get("0");
+//            curIndQuery = curIndQuery.replace("CourseRoomID", courseID);
+//
+//            //Adding the time filter for start of data
+//            String uStartDateStr = "";
+//            if (uStartDate > 0)
+//                uStartDateStr = "AND E.Timestamp >= " + uStartDate;
+//            curIndQuery = curIndQuery.replace("uStartDate", uStartDateStr);
+//
+//            //Adding the time filter for end of data
+//            String uEndDateStr = "";
+//            if (uEndDate > 0)
+//                uEndDateStr = "AND E.Timestamp <= " + uEndDate;
+//            curIndQuery = curIndQuery.replace("uEndDate", uEndDateStr);
+//
+//            OpenLAPDataSet queryDataSet = executeSQLQuery(curIndQuery);
+//
+//            if (queryDataSet == null) {
+//                throw new ItemNotFoundException("No data found for the indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "'.", "1");
+//            }
+//
+//            //try {
+//            //    System.out.println("Raw Data as OpenLAP-DataSet");
+//            //    System.out.println(mapper.writeValueAsString(queryDataSet));
+//            //} catch (Exception exc) { }
+//
+//            //Validating and applying the analytics method
+//
+//
+//            try {
+///*
+//            // Skipping this validate configuration step while executing the indicator as the configuration is already validated in the indicator generation step
+//
+//            String dataToMethodConfigJSON = triad.getIndicatorToAnalyticsMethodMapping().toString();
+//            String methodValidJSON = performPutRequest(baseUrl + "/AnalyticsMethods/"+triad.getAnalyticsMethodReference().getId()+"/validateConfiguration", dataToMethodConfigJSON);
+//
+//            OpenLAPDataSetConfigValidationResult methodValid =  mapper.readValue(methodValidJSON, OpenLAPDataSetConfigValidationResult.class);
+//
+//            if(methodValid.isValid()) {
+//*/
+//
+//                try {
+//                    AnalyticsMethod method = analyticsMethodsService.loadAnalyticsMethodInstance(triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId());
+//                    method.initialize(queryDataSet, triad.getIndicatorToAnalyticsMethodMapping().getPortConfigs().get("0"));
+//                    analyzedDataSet = method.execute();
+//                } catch (Exception ex) {
+//                    throw new ItemNotFoundException(ex.getMessage(), "1");
+//                }
+//            } catch (AnalyticsMethodInitializationException amexc) {
+//                throw new ItemNotFoundException(amexc.getMessage(), "1");
+//            } catch (Exception exc) {
+//                throw new ItemNotFoundException(exc.getMessage(), "1");
+//            }
+//
+//
+//            if (analyzedDataSet == null) {
+//                throw new ItemNotFoundException("No data returned from the analytics methods with id '" + triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId() + "'.", "1");
+//            }
+//
+//        }
+//        else {}
+//
+//        //try {
+//        //    System.out.println("Analyzed data using Analytics Method '" + triad.getAnalyticsMethodReference().getName() + "' as OpenLAP-DataSet");
+//        //    System.out.println(mapper.writeValueAsString(analyzedDataSet));
+//        //} catch (Exception exc) { }
+//
+//        //Visualizing the analyzed data
+//        String indicatorCode = "";
+//        try {
+//
+//            Map<String, Object> additionalParams = new HashMap<String, Object>();
+//
+//            for (Map.Entry<String, String> entry : params.entrySet()) {
+//                additionalParams.put(entry.getKey(), entry.getValue());
+//            }
+//
+//            GenerateVisualizationCodeRequest visualRequest = new GenerateVisualizationCodeRequest();
+//            visualRequest.setFrameworkId(triad.getVisualizationReference().getFrameworkId());
+//            //visualRequest.setFrameworkName(triad.getVisualizationReference().getFrameworkName());
+//            visualRequest.setMethodId(triad.getVisualizationReference().getMethodId());
+//            //visualRequest.setMethodName(triad.getVisualizationReference().getMethodName());
+//            visualRequest.setDataSet(analyzedDataSet);
+//            visualRequest.setPortConfiguration(triad.getAnalyticsMethodToVisualizationMapping());
+//            visualRequest.setParams(additionalParams);
+//
+//            String visualRequestJSON = mapper.writeValueAsString(visualRequest);
+//
+////            String visualResponseJSON = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON);
+////            GenerateVisualizationCodeResponse visualResponse = mapper.readValue(visualResponseJSON, GenerateVisualizationCodeResponse.class);
+//
+//            GenerateVisualizationCodeResponse visualResponse = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON, GenerateVisualizationCodeResponse.class);
+//
+//            indicatorCode = visualResponse.getVisualizationCode();
+//        } catch (Exception exc) {
+//            throw new ItemNotFoundException(exc.getMessage(), "1");
+//        }
+//
+//        //try {
+//        //    System.out.println("Indicator Visualization Code send back to the client: ");
+//        //    System.out.println(indicatorCode);
+//        //} catch (Exception exc) {}
+//
+//        return encodeURIComponent(indicatorCode);
+//    }
 
     public String executeIndicatorHQL(Map<String, String> params, String baseUrl) {
-        log.info("Start executing the indicator with Triad id: " + params.getOrDefault("tid", ""));
+        boolean performCache = true;
+        boolean isPersonalIndicator = false;
+        long indicatorExecutionStartTime = System.currentTimeMillis();
+        String userHashId = params.containsKey("rid") ? params.get("rid") : null;
+
+        long localExecutionCount = executionCount++;
+
+        //log.info("[Execute-Start],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", ""));
 
         Long triadId = Long.parseLong(params.get("tid"));
 
-        String divWidth;
-
-        if(params.containsKey("width"))
-            divWidth = params.get("width");
-        else
-            divWidth = "500";
+        String divWidth = params.containsKey("width") ? params.get("width") : "500";
         params.put("width", "xxxwidthxxx");
 
-
-        String divHeight;
-
-        if(params.containsKey("height"))
-            divHeight = params.get("height");
-        else
-            divHeight = "350";
+        String divHeight = params.containsKey("height") ? params.get("height") : "350";
         params.put("height", "xxxheightxxx");
 
 
-        boolean performCache = false;
 
-        TriadCache triadCache = performCache ? getCacheByTriadId(triadId) : null;
+        TriadCache triadCache = performCache ? getCacheByTriadId(triadId,userHashId.toUpperCase()) : null;
 
         if(triadCache == null) {
 
             ObjectMapper mapper = new ObjectMapper();
-
-//            Date startDate, endDate;
-//            long uStartDate = 0, uEndDate = 0;
-//
-//            try {
-//                if (params.containsKey("start")) {
-//                    startDate = new SimpleDateFormat("yyyyMMdd").parse(params.get("start"));
-//                    uStartDate = startDate.getTime() / 1000L;
-//                }
-//                if (params.containsKey("end")) {
-//                    endDate = new SimpleDateFormat("yyyyMMdd").parse(params.get("end"));
-//                    uEndDate = endDate.getTime() / 1000L;
-//                }
-//            } catch (ParseException e) {
-//                e.printStackTrace();
-//            }
 
             Triad triad;
 
@@ -323,71 +301,66 @@ public class AnalyticsEngineService {
                 String triadJSON = performGetRequest(baseUrl + "/AnalyticsModules/Triads/" + params.getOrDefault("tid", ""));
                 triad = mapper.readValue(triadJSON, Triad.class);
             } catch (Exception exc) {
-                throw new ItemNotFoundException("Indicator with triad id '" + params.getOrDefault("tid", "") + "' not found.", "1");
+                log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:tid-parse,code:unknown,msg:"+exc.getMessage());
+                throw new ItemNotFoundException("Indicator with id '" + params.getOrDefault("tid", "") + "' not found.", "1");
             }
 
-
-            if (triad == null)
-                throw new ItemNotFoundException("Indicator with triad id '" + params.getOrDefault("tid", "") + "' not found.", "1");
-
+            if (triad == null) {
+                log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:tid-search,code:tid-notfound");
+                throw new ItemNotFoundException("Indicator with id '" + params.getOrDefault("tid", "") + "' not found.", "1");
+            }
 
             OpenLAPDataSet analyzedDataSet = null;
-
-            //if(triad.getIndicatorReference().getIndicators().size()==1) {
 
             if(triad.getIndicatorReference().getIndicatorType().equals("simple")) {
 
                 Indicator curInd = getIndicatorById(triad.getIndicatorReference().getIndicators().get("0").getId());
 
                 if (curInd == null) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:get-query,code:query-notfound");
                     throw new ItemNotFoundException("Indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "' not found.", "1");
                 }
 
                 //Replacing the courseid in the query with the actual coursenumber coming from the request code.
-                String courseID = params.getOrDefault("cid", "");
                 String curIndQuery = curInd.getQuery().getQueries().get("0");
-                curIndQuery = curIndQuery.replace("CourseRoomID", courseID);
 
-                //Adding the time filter for start of data
-//                String uStartDateStr = "";
-//                if (uStartDate > 0)
-//                    uStartDateStr = "AND E.Timestamp >= " + uStartDate;
-//                curIndQuery = curIndQuery.replace("uStartDate", uStartDateStr);
-
-                //Adding the time filter for end of data
-//                String uEndDateStr = "";
-//                if (uEndDate > 0)
-//                    uEndDateStr = "AND E.Timestamp <= " + uEndDate;
-//                curIndQuery = curIndQuery.replace("uEndDate", uEndDateStr);
-
-                //OpenLAPDataSet queryDataSet = executeSQLQuery(curIndQuery);
+                if(curIndQuery.contains("xxxridxxx")) {
+                    isPersonalIndicator = true;
+                    if(userHashId == null) {
+                        log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:" + localExecutionCount + ",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis() - indicatorExecutionStartTime) + ",step:rid,code:rid-missing");
+                        throw new ItemNotFoundException("This indicator require a user code to generate personalized data which is not provided. Please contact OpenLAP admins with indicator id : " + triad.getId() + ".", "1");
+                    }
+                    else{
+                        curIndQuery = curIndQuery.replace("xxxridxxx", userHashId.toUpperCase());
+                    }
+                }
 
                 OpenLAPDataSet queryDataSet = executeIndicatorQuery(curIndQuery, triad.getIndicatorToAnalyticsMethodMapping().getPortConfigs().get("0"), 0);
 
                 if (queryDataSet == null) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:" + localExecutionCount + ",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis() - indicatorExecutionStartTime) + ",step:query,code:query-data-empty");
                     throw new ItemNotFoundException("No data found for the indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "'.", "1");
                 }
 
 
                 //Applying the analytics method
                 try {
-                    try {
-                        AnalyticsMethod method = analyticsMethodsService.loadAnalyticsMethodInstance(triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId());
-                        Map<String, String> methodParams = triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getAdditionalParams();
+                    AnalyticsMethod method = analyticsMethodsService.loadAnalyticsMethodInstance(triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId());
+                    Map<String, String> methodParams = triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getAdditionalParams();
 
-                        method.initialize(queryDataSet, triad.getIndicatorToAnalyticsMethodMapping().getPortConfigs().get("0"), methodParams);
-                        analyzedDataSet = method.execute();
-                    } catch (Exception ex) {
-                        throw new ItemNotFoundException(ex.getMessage(), "1");
-                    }
+                    method.initialize(queryDataSet, triad.getIndicatorToAnalyticsMethodMapping().getPortConfigs().get("0"), methodParams);
+                    analyzedDataSet = method.execute();
                 } catch (AnalyticsMethodInitializationException amexc) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-initialize,code:unknown,msg:"+amexc.getMessage());
                     throw new ItemNotFoundException(amexc.getMessage(), "1");
                 } catch (Exception exc) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-execute,code:unknown,msg:"+exc.getMessage());
                     throw new ItemNotFoundException(exc.getMessage(), "1");
                 }
 
 
                 if (analyzedDataSet == null) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:analysis,code:analysis-data-empty");
                     throw new ItemNotFoundException("No data returned from the analytics methods with id '" + triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId() + "'.", "1");
                 }
             } else if(triad.getIndicatorReference().getIndicatorType().equals("composite")){
@@ -395,11 +368,9 @@ public class AnalyticsEngineService {
                 Indicator curInd = getIndicatorById(triad.getIndicatorReference().getIndicators().get("0").getId());
 
                 if (curInd == null) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:get-query,code:query-notfound");
                     throw new ItemNotFoundException("Indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "' not found.", "1");
                 }
-
-                //Replacing the courseid in the query with the actual coursenumber coming from the request code.
-                String courseID = params.getOrDefault("cid", "");
 
                 Set<String> indicatorNames = curInd.getQuery().getQueries().keySet();
                 OpenLAPPortConfig methodToVisConfig = triad.getAnalyticsMethodToVisualizationMapping();
@@ -418,17 +389,26 @@ public class AnalyticsEngineService {
                     String curIndQuery = curInd.getQuery().getQueries().get(indicatorName);
                     OpenLAPPortConfig queryToMethodConfig = triad.getIndicatorToAnalyticsMethodMapping().getPortConfigs().get(indicatorName);
 
-                    curIndQuery = curIndQuery.replace("CourseRoomID", courseID);
+                    //curIndQuery = curIndQuery.replace("CourseRoomID", courseID);
+                    if(curIndQuery.contains("xxxridxxx")) {
+                        isPersonalIndicator = true;
+                        if(userHashId == null) {
+                            log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:rid,code:rid-missing");
+                            throw new ItemNotFoundException("This indicator require a user code to generate personalized data which is not provided. Please contact OpenLAP admins with indicator id : " + triad.getId() + ".", "1");
+                        }
+                        else{
+                            curIndQuery = curIndQuery.replace("xxxridxxx", userHashId.toUpperCase());
+                        }
+                    }
 
                     OpenLAPDataSet queryDataSet = executeIndicatorQuery(curIndQuery, queryToMethodConfig, 0);
 
                     if (queryDataSet == null) {
+                        log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:query,code:query-data-empty");
                         throw new ItemNotFoundException("No data found for the indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "'.", "1");
                     }
 
-//                try {
-//                    log.info("Query data: " + mapper.writeValueAsString(queryDataSet));
-//                } catch (Exception exc) {}
+                    //try { log.info("Query data: " + mapper.writeValueAsString(queryDataSet)); } catch (Exception exc) {}
 
                     //Applying the analytics method
                     OpenLAPDataSet singleAnalyzedDataSet = null;
@@ -439,19 +419,19 @@ public class AnalyticsEngineService {
                         method.initialize(queryDataSet, queryToMethodConfig, methodParams);
                         singleAnalyzedDataSet = method.execute();
                     } catch (AnalyticsMethodInitializationException amexc) {
+                        log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-initialize,code:unknown,msg:"+amexc.getMessage());
                         throw new ItemNotFoundException(amexc.getMessage(), "1");
                     } catch (Exception exc) {
+                        log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-execute,code:unknown,msg:"+exc.getMessage());
                         throw new ItemNotFoundException(exc.getMessage(), "1");
                     }
 
-
                     if (singleAnalyzedDataSet == null) {
+                        log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:analysis,code:analysis-data-empty");
                         throw new ItemNotFoundException("No data returned from the analytics methods with id '" + triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId() + "'.", "1");
                     }
 
-//                    try {
-//                        log.info("Analyzed data: " + mapper.writeValueAsString(singleAnalyzedDataSet));
-//                    } catch (Exception exc) {}
+                    //try { log.info("Analyzed data: " + mapper.writeValueAsString(singleAnalyzedDataSet)); } catch (Exception exc) {}
 
                     //Merging analyzed dataset
                     if(analyzedDataSet == null) {
@@ -460,7 +440,7 @@ public class AnalyticsEngineService {
                         if(addIndicatorNameColumn)
                             if(!analyzedDataSet.getColumns().containsKey("indicator_names"))
                                 try {
-                                    analyzedDataSet.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("indicator_names", OpenLAPColumnDataType.STRING, true, "Indicator Names", "Names of the indicators combines together to form the composite."));
+                                    analyzedDataSet.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("indicator_names", OpenLAPColumnDataType.Text, true, "Indicator Names", "Names of the indicators combines together to form the composite."));
                                 } catch (OpenLAPDataColumnException e) { e.printStackTrace(); }
                     }
                     else {
@@ -478,45 +458,46 @@ public class AnalyticsEngineService {
                     }
                 }
 
-//                try {
-//                    log.info("Combined Analyzed data: " + mapper.writeValueAsString(analyzedDataSet));
-//                } catch (Exception exc) {}
+                //try { log.info("Combined Analyzed data: " + mapper.writeValueAsString(analyzedDataSet)); } catch (Exception exc) {}
 
                 } else if(triad.getIndicatorReference().getIndicatorType().equals("multianalysis")){
 
                 Indicator curInd = getIndicatorById(triad.getIndicatorReference().getIndicators().get("0").getId());
 
                 if (curInd == null) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:get-query,code:query-notfound");
                     throw new ItemNotFoundException("Indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "' not found.", "1");
                 }
 
-                //Replacing the courseid in the query with the actual coursenumber coming from the request code.
-                String courseID = params.getOrDefault("cid", "");
-
                 Set<String> indicatorIds = curInd.getQuery().getQueries().keySet();
-
                 Map<String, OpenLAPDataSet> analyzedDatasetMap = new HashMap<>();
 
-
                 for(String indicatorId: indicatorIds){
-
                     if(indicatorId.equals("0")) // skipping 0 since it is the id for the 2nd level analytics method and it does not have a query
                         continue;
 
                     String curIndQuery = curInd.getQuery().getQueries().get(indicatorId);
                     OpenLAPPortConfig queryToMethodConfig = triad.getIndicatorToAnalyticsMethodMapping().getPortConfigs().get(indicatorId);
 
-                    curIndQuery = curIndQuery.replace("CourseRoomID", courseID);
+                    if(curIndQuery.contains("xxxridxxx")) {
+                        isPersonalIndicator = true;
+                        if(userHashId == null) {
+                            log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:rid,code:rid-missing");
+                            throw new ItemNotFoundException("This indicator require a user code to generate personalized data which is not provided. Please contact OpenLAP admins with indicator id : " + triad.getId() + ".", "1");
+                        }
+                        else{
+                            curIndQuery = curIndQuery.replace("xxxridxxx", userHashId.toUpperCase());
+                        }
+                    }
 
                     OpenLAPDataSet queryDataSet = executeIndicatorQuery(curIndQuery, queryToMethodConfig, 0);
 
                     if (queryDataSet == null) {
+                        log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:query,code:query-data-empty");
                         throw new ItemNotFoundException("No data found for the indicator with id '" + triad.getIndicatorReference().getIndicators().get("0").getId() + "'.", "1");
                     }
 
-//                try {
-//                    log.info("Query data: " + mapper.writeValueAsString(queryDataSet));
-//                } catch (Exception exc) {}
+                    //try { log.info("Query data: " + mapper.writeValueAsString(queryDataSet)); } catch (Exception exc) {}
 
                     //Applying the analytics method
                     OpenLAPDataSet singleAnalyzedDataSet = null;
@@ -525,23 +506,23 @@ public class AnalyticsEngineService {
                         Map<String, String> methodParams = triad.getAnalyticsMethodReference().getAnalyticsMethods().get(indicatorId).getAdditionalParams();
                         method.initialize(queryDataSet, queryToMethodConfig, methodParams);
                         singleAnalyzedDataSet = method.execute();
-                    } catch (AnalyticsMethodInitializationException amexc) {
-                        throw new ItemNotFoundException(amexc.getMessage(), "1");
+                    } catch (AnalyticsMethodInitializationException exc) {
+                        log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-initialize,code:unknown,msg:"+exc.getMessage());
+                        throw new ItemNotFoundException(exc.getMessage(), "1");
                     } catch (Exception exc) {
+                        log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-execute,code:unknown,msg:"+exc.getMessage());
                         throw new ItemNotFoundException(exc.getMessage(), "1");
                     }
 
                     if (singleAnalyzedDataSet == null) {
+                        log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:analysis,code:analysis-data-empty");
                         throw new ItemNotFoundException("No data returned from the analytics methods with id '" + triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId() + "'.", "1");
                     }
 
                     analyzedDatasetMap.put(indicatorId, singleAnalyzedDataSet);
 
-//                    try {
-//                        log.info("Analyzed data: " + mapper.writeValueAsString(singleAnalyzedDataSet));
-//                    } catch (Exception exc) {}
+                    //try { log.info("Analyzed data: " + mapper.writeValueAsString(singleAnalyzedDataSet)); } catch (Exception exc) {}
                 }
-
 
                 //mergning dataset
                 List<OpenLAPDataSetMergeMapping> mergeMappings = triad.getIndicatorReference().getDataSetMergeMappingList();
@@ -554,14 +535,10 @@ public class AnalyticsEngineService {
                     OpenLAPDataSet secondDataset = null;
 
                     for(OpenLAPDataSetMergeMapping mergeMapping: mergeMappings){
-
-                        //OpenLAPDataSetMergeMapping mergeMapping = mergeMappings.get(0);
-
                         String key1 = mergeMapping.getIndRefKey1();
                         String key2 = mergeMapping.getIndRefKey2();
 
                         int dashCountKey1 = StringUtils.countMatches(key1, "-"); //Merged keys will always be in key1
-                        //int dashCountKey2 = StringUtils.countMatches(key2, "-");
 
                         if(dashCountKey1 == 0) {
                             firstDataset = analyzedDatasetMap.get(key1);
@@ -575,7 +552,6 @@ public class AnalyticsEngineService {
                                 continue;
                         }
 
-
                         OpenLAPDataSet processedDataset = mergeOpenLAPDataSets(firstDataset, secondDataset, mergeMapping);
                         if(processedDataset != null) {
                             mergedDataset = processedDataset;
@@ -588,9 +564,7 @@ public class AnalyticsEngineService {
 
                 }
 
-                try {
-                    log.info("Merged Analyzed data: " + mapper.writeValueAsString(mergedDataset));
-                } catch (Exception exc) {}
+                //try { log.info("Merged Analyzed data: " + mapper.writeValueAsString(mergedDataset)); } catch (Exception exc) {}
 
 
                 //Applying the final analysis whose configuration is stored always with id "0"
@@ -601,12 +575,15 @@ public class AnalyticsEngineService {
                     method.initialize(mergedDataset, finalQueryToMethodConfig, methodParams);
                     analyzedDataSet = method.execute();
                 } catch (AnalyticsMethodInitializationException amexc) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-initialize,code:unknown,msg:"+amexc.getMessage());
                     throw new ItemNotFoundException(amexc.getMessage(), "1");
                 } catch (Exception exc) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-execute,code:unknown,msg:"+exc.getMessage());
                     throw new ItemNotFoundException(exc.getMessage(), "1");
                 }
 
                 if (analyzedDataSet == null) {
+                    log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:analysis,code:final-analysis-data-empty");
                     throw new ItemNotFoundException("No data returned from the analytics methods with id '" + triad.getAnalyticsMethodReference().getAnalyticsMethods().get("0").getId() + "'.", "1");
                 }
             }
@@ -631,68 +608,82 @@ public class AnalyticsEngineService {
                 visualRequest.setParams(additionalParams);
 
                 String visualRequestJSON = mapper.writeValueAsString(visualRequest);
-
-//                String visualResponseJSON = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON);
-//                GenerateVisualizationCodeResponse visualResponse = mapper.readValue(visualResponseJSON, GenerateVisualizationCodeResponse.class);
-
                 GenerateVisualizationCodeResponse visualResponse = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON, GenerateVisualizationCodeResponse.class);
 
                 indicatorCode = visualResponse.getVisualizationCode();
             } catch (Exception exc) {
+                log.error("[Execute],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.getOrDefault("tid", "") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-execute,code:unknown,msg:"+exc.getMessage());
                 throw new ItemNotFoundException(exc.getMessage(), "1");
             }
 
             String encodedCode = encodeURIComponent(indicatorCode);
 
-            if(performCache)
-                saveTriadCache(triadId, encodedCode);
+            if(performCache){
+                if(isPersonalIndicator)
+                    saveTriadCache(triadId, userHashId.toUpperCase(), encodedCode);
+                else
+                    saveTriadCache(triadId, encodedCode);
+            }
+
 
             encodedCode = encodedCode.replace("xxxwidthxxx", divWidth);
             encodedCode = encodedCode.replace("xxxheightxxx", divHeight);
 
-            log.info("Returning new code for Triad id: " + params.get("tid"));
+            log.info("[Execute-New],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.get("tid") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime));
 
             return encodedCode;
         }
         else{
-            log.info("Returning cached code for Triad id: " + params.get("tid"));
-
             String encodedCode = triadCache.getCode();
 
             encodedCode = encodedCode.replace("xxxwidthxxx", divWidth);
             encodedCode = encodedCode.replace("xxxheightxxx", divHeight);
 
+            log.info("[Execute-Cache],user:"+(userHashId==null?"":userHashId)+",count:"+localExecutionCount+",tid:" + params.get("tid") + ",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime));
+
             return encodedCode;
         }
     }
 
-    public IndicatorPreviewResponse getIndicatorPreview(IndicatorPreviewRequest previewRequest, Map<String, String> params, String baseUrl) {
+    public IndicatorPreviewResponse getIndicatorPreview(IndicatorPreviewRequest previewRequest, String baseUrl) {
+        long indicatorExecutionStartTime = System.currentTimeMillis();
+        long localPreviewCount = previewCount++;
+
         IndicatorPreviewResponse response = new IndicatorPreviewResponse();
         try {
             ObjectMapper mapper = new ObjectMapper();
 
             try {
-                log.info("Start generating the indicator preview for:" +  mapper.writeValueAsString(previewRequest));
+                log.info("[Preview-Simple-Start],user:"+previewRequest.getAdditionalParams().get("uid").toString()+",count:"+localPreviewCount+",param:" + mapper.writeValueAsString(previewRequest));
             } catch (Exception exc) { }
 
             if(previewRequest.getIndicatorType().equals("simple")) {
                 String curIndQuery = previewRequest.getQuery().get("0");
                 OpenLAPPortConfig queryToMethodConfig = previewRequest.getQueryToMethodConfig().get("0");
 
-                //OpenLAPDataSet queryDataSet = executeSQLQuery(curIndQuery);
+                if(curIndQuery.contains("xxxridxxx")) {
+                    if(!previewRequest.getAdditionalParams().containsKey("rid")){
+                        response.setSuccess(false);
+                        response.setErrorMessage("This indicator require a user code to generate personalized data which is not provided. Try again after refreshing the web page.");
+                        log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:rid,code:rid-missing");
+                        return response;
+                    }
+                    else{
+                        String userID = previewRequest.getAdditionalParams().get("rid").toString().toUpperCase();
+                        curIndQuery = curIndQuery.replace("xxxridxxx", userID);
+                    }
+                }
 
                 OpenLAPDataSet queryDataSet = executeIndicatorQuery(curIndQuery, queryToMethodConfig, 0);
 
                 if (queryDataSet == null) {
                     response.setSuccess(false);
-                    response.setErrorMessage("No data found for the requested query");
-                    log.info("No data found for the requested query");
+                    response.setErrorMessage("No data found for the indicator. Try Changing the selections in 'Dataset' and 'Filters' sections");
+                    log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:query,code:query-data-empty");
                     return response;
                 }
 
-//                try {
-//                    log.info("Query data: " + mapper.writeValueAsString(queryDataSet));
-//                } catch (Exception exc) {}
+                //try { log.info("Query data: " + mapper.writeValueAsString(queryDataSet)); } catch (Exception exc) {}
 
 
                 //Validating the analytics method
@@ -701,13 +692,17 @@ public class AnalyticsEngineService {
 
                     OpenLAPDataSetConfigValidationResult methodValid = mapper.readValue(methodValidJSON, OpenLAPDataSetConfigValidationResult.class);
 
-                    if (!methodValid.isValid())
-                        throw new Exception("Mapping between the data column and the input to analysis method is not valid.");
+                    if (!methodValid.isValid()) {
+                        response.setSuccess(false);
+                        response.setErrorMessage(methodValid.getValidationMessage());
+                        log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-validate,code:unknown,msg:"+methodValid.getValidationMessage());
+                        return response;
+                    }
 
                 } catch (Exception exc) {
                     response.setSuccess(false);
-                    response.setErrorMessage(exc.getMessage());
-                    log.info(exc.getMessage());
+                    response.setErrorMessage("An unknown error occurred while validating the inputs to analysis. please contact the admins with the following error: " + exc.getMessage());
+                    log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-validate,code:unknown,msg:"+exc.getMessage());
                     return response;
                 }
 
@@ -715,37 +710,33 @@ public class AnalyticsEngineService {
                 OpenLAPDataSet analyzedDataSet = null;
                 try {
                     AnalyticsMethod method = analyticsMethodsService.loadAnalyticsMethodInstance(previewRequest.getAnalyticsMethodId().get("0"));
-                    Map<String, String> methodParams = previewRequest.getMethodInputParams();
+                    String rawMethodParams = previewRequest.getMethodInputParams().containsKey("0") ? previewRequest.getMethodInputParams().get("0") : "";
+                    Map<String, String> methodParams = rawMethodParams.isEmpty() ? new HashMap<>() : mapper.readValue(rawMethodParams, new TypeReference<HashMap<String,String>>() {});
 
                     method.initialize(queryDataSet, queryToMethodConfig, methodParams);
                     analyzedDataSet = method.execute();
                 } catch (AnalyticsMethodInitializationException amexc) {
                     response.setSuccess(false);
-                    response.setErrorMessage(amexc.getMessage());
-                    log.info(amexc.getMessage());
+                    response.setErrorMessage("An unknown error occurred while starting the analysis. please contact the admins with the following error: " + amexc.getMessage());
+                    log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-initialize,code:unknown,msg:"+amexc.getMessage());
                     return response;
                 } catch (Exception exc) {
                     response.setSuccess(false);
-                    response.setErrorMessage(exc.getMessage());
-                    log.info(exc.getMessage());
+                    response.setErrorMessage("An unknown error occurred while performing the analysis. please contact the admins with the following error: " +exc.getMessage());
+                    log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-execute,code:unknown,msg:"+exc.getMessage());
                     return response;
                 }
 
 
                 if (analyzedDataSet == null) {
                     response.setSuccess(false);
-                    response.setErrorMessage("No analyzed data returned from the analytics method");
-                    log.info("No analyzed data returned from the analytics method");
+                    response.setErrorMessage("No analyzed data was generated from the analytics method");
+                    log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:analysis,code:analysis-data-empty");
                     return response;
                 }
 
-                try {
-                    log.info("Analyzed data: " + mapper.writeValueAsString(analyzedDataSet));
-                } catch (Exception exc) { }
+                //try { log.info("Analyzed data: " + mapper.writeValueAsString(analyzedDataSet)); } catch (Exception exc) { }
 
-
-                //Accessing Analytics method
-                VisualizationMethodConfigurationResponse visMethodConfigResponse = null;
 
                 //visualizing the analyzed data
                 String indicatorCode = "";
@@ -754,24 +745,23 @@ public class AnalyticsEngineService {
 
                 //Validating the visualization technique
                 try {
-
                     ValidateVisualizationMethodConfigurationRequest visRequest = new ValidateVisualizationMethodConfigurationRequest();
                     visRequest.setConfigurationMapping(methodToVisConfig);
-
                     String visRequestJSON = mapper.writeValueAsString(visRequest);
-
-//                String visValidResponseJSON = performJSONPostRequest(visualizationURL + "/frameworks/" + previewRequest.getVisualizationFrameworkId() + "/methods/" + previewRequest.getVisualizationMethodId() + "/validateConfiguration",visRequestJSON);
-//                ValidateVisualizationMethodConfigurationResponse visValid =  mapper.readValue(visValidResponseJSON, ValidateVisualizationMethodConfigurationResponse.class);
 
                     ValidateVisualizationMethodConfigurationResponse visValid = performJSONPostRequest(visualizationURL + "/frameworks/" + previewRequest.getVisualizationFrameworkId() + "/methods/" + previewRequest.getVisualizationMethodId() + "/validateConfiguration", visRequestJSON, ValidateVisualizationMethodConfigurationResponse.class);
 
-                    if (!visValid.isConfigurationValid())
-                        throw new Exception("Mapping between the output of method and input of visualization is not valid.");
+                    if (!visValid.isConfigurationValid()){
+                        response.setSuccess(false);
+                        response.setErrorMessage(visValid.getValidationMessage());
+                        log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-validate,code:unknown,msg:"+visValid.getValidationMessage());
+                        return response;
+                    }
 
                 } catch (Exception exc) {
                     response.setSuccess(false);
                     response.setErrorMessage(exc.getMessage());
-                    log.info(exc.getMessage());
+                    log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-validate,code:unknown,msg:"+exc.getMessage());
                     return response;
                 }
 
@@ -786,45 +776,49 @@ public class AnalyticsEngineService {
 
                     String visualRequestJSON = mapper.writeValueAsString(visualRequest);
 
-                    //String visualResponseJSON = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON);
-                    //GenerateVisualizationCodeResponse visualResponse = mapper.readValue(visualResponseJSON, GenerateVisualizationCodeResponse.class);
-
                     GenerateVisualizationCodeResponse visualResponse = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON, GenerateVisualizationCodeResponse.class);
 
                     indicatorCode = visualResponse.getVisualizationCode();
                 } catch (Exception exc) {
                     response.setSuccess(false);
                     response.setErrorMessage(exc.getMessage());
-                    log.info(exc.getMessage());
+                    log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-execute,code:unknown,msg:"+exc.getMessage());
                     return response;
                 }
 
                 response.setSuccess(true);
                 response.setErrorMessage("");
+                response.setVisualizationCode(encodeURIComponent(indicatorCode));
+
                 //response.setQuery(previewRequest.getQuery());
                 //response.setAnalyticsMethodId(previewRequest.getAnalyticsMethodId());
                 //response.setVisualizationFrameworkId(previewRequest.getVisualizationFrameworkId());
                 //response.setVisualizationMethodId(previewRequest.getVisualizationMethodId());
-                response.setVisualizationCode(encodeURIComponent(indicatorCode));
                 //response.setIndicatorToAnalyticsMethodMapping(queryToMethodConfig);
                 //response.setAnalyticsMethodToVisualizationMapping(methodToVisConfig);
             }
+
+            log.info("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime));
+
             return response;
         } catch (Exception exc) {
             response.setSuccess(false);
             response.setErrorMessage(exc.getMessage());
-            log.info(exc.getMessage());
+            log.error("[Preview-Simple-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:indicator-preview,code:unknown,msg:"+exc.getMessage());
             return response;
         }
     }
 
-    public IndicatorPreviewResponse getCompIndicatorPreview(IndicatorPreviewRequest previewRequest, Map<String, String> params, String baseUrl) {
+    public IndicatorPreviewResponse getCompIndicatorPreview(IndicatorPreviewRequest previewRequest, String baseUrl) {
+        long indicatorExecutionStartTime = System.currentTimeMillis();
+        long localPreviewCount = previewCount++;
+
         IndicatorPreviewResponse response = new IndicatorPreviewResponse();
         try {
             ObjectMapper mapper = new ObjectMapper();
 
             try {
-                log.info("Start generating the composite indicator preview for:" +  mapper.writeValueAsString(previewRequest));
+                log.info("[Preview-Composite-Start],user:"+previewRequest.getAdditionalParams().get("uid").toString()+",count:"+localPreviewCount+",param:" + mapper.writeValueAsString(previewRequest));
             } catch (Exception exc) { }
 
             if(previewRequest.getIndicatorType().equals("composite")) {
@@ -848,33 +842,46 @@ public class AnalyticsEngineService {
                     String curIndQuery = previewRequest.getQuery().get(indicatorName);
                     OpenLAPPortConfig queryToMethodConfig = previewRequest.getQueryToMethodConfig().get(indicatorName);
 
+                    if(curIndQuery.contains("xxxridxxx")) {
+                        if(!previewRequest.getAdditionalParams().containsKey("rid")){
+                            response.setSuccess(false);
+                            response.setErrorMessage("This indicator require a user code to generate personalized data which is not provided. Try again after refreshing the web page.");
+                            log.error("[Preview-Composite-End]["+indicatorName+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:rid,code:rid-missing");
+                            return response;
+                        }
+                        else{
+                            String userID = previewRequest.getAdditionalParams().get("rid").toString().toUpperCase();
+                            curIndQuery = curIndQuery.replace("xxxridxxx", userID);
+                        }
+                    }
+
                     OpenLAPDataSet queryDataSet = executeIndicatorQuery(curIndQuery, queryToMethodConfig, 0);
 
                     if (queryDataSet == null) {
                         response.setSuccess(false);
-                        response.setErrorMessage("No data found for indicator '" + indicatorName + "'");
-                        log.info("No data found for indicator '" + indicatorName + "'");
+                        response.setErrorMessage("No data found for the indicator '" + indicatorName + "'. Try selecting some other indicator for composite which can be previewed");
+                        log.error("[Preview-Composite-End]["+indicatorName+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:query,code:query-data-empty");
                         return response;
                     }
 
-//                try {
-//                    log.info("Query data: " + mapper.writeValueAsString(queryDataSet));
-//                } catch (Exception exc) {}
-
+                    //try { log.info("Query data: " + mapper.writeValueAsString(queryDataSet)); } catch (Exception exc) {}
 
                     //Validating the analytics method
                     try {
                         String methodValidJSON = performPutRequest(baseUrl + "/AnalyticsMethods/" + previewRequest.getAnalyticsMethodId().get(indicatorName) + "/validateConfiguration", queryToMethodConfig.toString());
-
                         OpenLAPDataSetConfigValidationResult methodValid = mapper.readValue(methodValidJSON, OpenLAPDataSetConfigValidationResult.class);
 
-                        if (!methodValid.isValid())
-                            throw new Exception("Mapping between the data column and the input to analysis method is not valid for indicator '" + indicatorName + "'.");
+                        if (!methodValid.isValid()) {
+                            response.setSuccess(false);
+                            response.setErrorMessage(methodValid.getValidationMessage());
+                            log.error("[Preview-Composite-End]["+indicatorName+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-validate,code:unknown,msg:"+methodValid.getValidationMessage());
+                            return response;
+                        }
 
                     } catch (Exception exc) {
                         response.setSuccess(false);
-                        response.setErrorMessage(exc.getMessage());
-                        log.info(exc.getMessage());
+                        response.setErrorMessage("An unknown error has occurred while validating the inputs to the analysis for indicator '" + indicatorName + "'. please contact the admins with the following error: " +exc.getMessage());
+                        log.error("[Preview-Composite-End]["+indicatorName+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-validate,code:unknown,msg:"+exc.getMessage());
                         return response;
                     }
 
@@ -882,34 +889,32 @@ public class AnalyticsEngineService {
                     OpenLAPDataSet analyzedDataSet = null;
                     try {
                         AnalyticsMethod method = analyticsMethodsService.loadAnalyticsMethodInstance(previewRequest.getAnalyticsMethodId().get(indicatorName));
-                        Map<String, String> methodParams = previewRequest.getMethodInputParams();
+                        String rawMethodParams = previewRequest.getMethodInputParams().containsKey(indicatorName) ? previewRequest.getMethodInputParams().get(indicatorName) : "";
 
+                        Map<String, String> methodParams = rawMethodParams.isEmpty() ? new HashMap<>() : mapper.readValue(rawMethodParams, new TypeReference<HashMap<String,String>>() {});
                         method.initialize(queryDataSet, queryToMethodConfig, methodParams);
-                        //method.initialize(queryDataSet, queryToMethodConfig);
                         analyzedDataSet = method.execute();
                     } catch (AnalyticsMethodInitializationException amexc) {
                         response.setSuccess(false);
-                        response.setErrorMessage(amexc.getMessage());
-                        log.info(amexc.getMessage());
+                        response.setErrorMessage("An unknown error occurred while starting the analysis for the indicator '" + indicatorName + "'. please contact the admins with the following error: " + amexc.getMessage());
+                        log.error("[Preview-Composite-End]["+indicatorName+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-initialize,code:unknown,msg:"+amexc.getMessage());
                         return response;
                     } catch (Exception exc) {
                         response.setSuccess(false);
-                        response.setErrorMessage(exc.getMessage());
-                        log.info(exc.getMessage());
+                        response.setErrorMessage("An unknown error occurred while performing the analysis for the indicator '" + indicatorName + "'. please contact the admins with the following error: " + exc.getMessage());
+                        log.error("[Preview-Composite-End]["+indicatorName+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-execute,code:unknown,msg:"+exc.getMessage());
                         return response;
                     }
 
 
                     if (analyzedDataSet == null) {
                         response.setSuccess(false);
-                        response.setErrorMessage("No analyzed data returned from the analytics method");
-                        log.info("No analyzed data returned from the analytics method");
+                        response.setErrorMessage("No analyzed data was generated for the indicator '" + indicatorName + "'.");
+                        log.error("[Preview-Composite-End]["+indicatorName+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:analysis,code:analysis-data-empty");
                         return response;
                     }
 
-//                    try {
-//                        log.info("Analyzed data: " + mapper.writeValueAsString(analyzedDataSet));
-//                    } catch (Exception exc) {}
+                    //try { log.info("Analyzed data: " + mapper.writeValueAsString(analyzedDataSet)); } catch (Exception exc) {}
 
                     //Merging analyzed dataset
                     if(combinedAnalyzedDataSet == null) {
@@ -917,7 +922,7 @@ public class AnalyticsEngineService {
 
                         if(addIndicatorNameColumn)
                             if(!combinedAnalyzedDataSet.getColumns().containsKey("indicator_names"))
-                                combinedAnalyzedDataSet.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("indicator_names", OpenLAPColumnDataType.STRING, true, "Indicator Names", "Names of the indicators combines together to form the composite."));
+                                combinedAnalyzedDataSet.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("indicator_names", OpenLAPColumnDataType.Text, true, "Indicator Names", "Names of the indicators combines together to form the composite."));
                     }
                     else {
                         List<OpenLAPColumnConfigData> columnConfigDatas = analyzedDataSet.getColumnsConfigurationData();
@@ -934,23 +939,10 @@ public class AnalyticsEngineService {
                     }
                 }
 
-//                try {
-//                    log.info("Combined Analyzed data: " + mapper.writeValueAsString(combinedAnalyzedDataSet));
-//                } catch (Exception exc) {}
-
-
-
-//                try {
-//                    log.info("Analyzed data: " + mapper.writeValueAsString(analyzedDataSet));
-//                } catch (Exception exc) { }
-
-
-                //Accessing Analytics method
-                //VisualizationMethodConfigurationResponse visMethodConfigResponse = null;
+                //try { log.info("Combined Analyzed data: " + mapper.writeValueAsString(combinedAnalyzedDataSet)); } catch (Exception exc) {}
 
                 //visualizing the analyzed data
                 String indicatorCode = "";
-
 
                 //Validating the visualization technique
                 try {
@@ -960,21 +952,21 @@ public class AnalyticsEngineService {
 
                     String visRequestJSON = mapper.writeValueAsString(visRequest);
 
-//                String visValidResponseJSON = performJSONPostRequest(visualizationURL + "/frameworks/" + previewRequest.getVisualizationFrameworkId() + "/methods/" + previewRequest.getVisualizationMethodId() + "/validateConfiguration",visRequestJSON);
-//                ValidateVisualizationMethodConfigurationResponse visValid =  mapper.readValue(visValidResponseJSON, ValidateVisualizationMethodConfigurationResponse.class);
-
                     ValidateVisualizationMethodConfigurationResponse visValid = performJSONPostRequest(visualizationURL + "/frameworks/" + previewRequest.getVisualizationFrameworkId() + "/methods/" + previewRequest.getVisualizationMethodId() + "/validateConfiguration", visRequestJSON, ValidateVisualizationMethodConfigurationResponse.class);
 
-                    if (!visValid.isConfigurationValid())
-                        throw new Exception("Mapping between the output of method and input of visualization is not valid.");
+                    if (!visValid.isConfigurationValid()){
+                        response.setSuccess(false);
+                        response.setErrorMessage(visValid.getValidationMessage());
+                        log.error("[Preview-Composite-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-validate,code:unknown,msg:"+visValid.getValidationMessage());
+                        return response;
+                    }
 
                 } catch (Exception exc) {
                     response.setSuccess(false);
                     response.setErrorMessage(exc.getMessage());
-                    log.info(exc.getMessage());
+                    log.error("[Preview-Composite-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-validate,code:unknown,msg:"+exc.getMessage());
                     return response;
                 }
-
 
                 try {
                     GenerateVisualizationCodeRequest visualRequest = new GenerateVisualizationCodeRequest();
@@ -986,16 +978,13 @@ public class AnalyticsEngineService {
 
                     String visualRequestJSON = mapper.writeValueAsString(visualRequest);
 
-                    //String visualResponseJSON = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON);
-                    //GenerateVisualizationCodeResponse visualResponse = mapper.readValue(visualResponseJSON, GenerateVisualizationCodeResponse.class);
-
                     GenerateVisualizationCodeResponse visualResponse = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON, GenerateVisualizationCodeResponse.class);
 
                     indicatorCode = visualResponse.getVisualizationCode();
                 } catch (Exception exc) {
                     response.setSuccess(false);
                     response.setErrorMessage(exc.getMessage());
-                    log.info(exc.getMessage());
+                    log.error("[Preview-Composite-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-execute,code:unknown,msg:"+exc.getMessage());
                     return response;
                 }
 
@@ -1003,169 +992,219 @@ public class AnalyticsEngineService {
                 response.setErrorMessage("");
                 response.setVisualizationCode(encodeURIComponent(indicatorCode));
             }
+            log.info("[Preview-Composite-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime));
             return response;
         } catch (Exception exc) {
             response.setSuccess(false);
             response.setErrorMessage(exc.getMessage());
-            log.info(exc.getMessage());
+            log.error("[Preview-Composite-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:indicator-preview,code:unknown,msg:"+exc.getMessage());
             return response;
         }
     }
 
-    public IndicatorPreviewResponse getMLAIIndicatorPreview(IndicatorPreviewRequest previewRequest, Map<String, String> params, String baseUrl) {
+    public IndicatorPreviewResponse getMLAIIndicatorPreview(IndicatorPreviewRequest previewRequest, String baseUrl) {
+        long indicatorExecutionStartTime = System.currentTimeMillis();
+        long localPreviewCount = previewCount++;
+
         IndicatorPreviewResponse response = new IndicatorPreviewResponse();
         try {
             ObjectMapper mapper = new ObjectMapper();
 
             try {
-                log.info("Start generating the composite indicator preview for:" +  mapper.writeValueAsString(previewRequest));
+                log.info("[Preview-MLAI-Start],user:"+previewRequest.getAdditionalParams().get("uid").toString()+",count:"+localPreviewCount+",param:" + mapper.writeValueAsString(previewRequest));
             } catch (Exception exc) { }
 
-            if(previewRequest.getIndicatorType().equals("composite")) {
+            if(previewRequest.getIndicatorType().equals("multianalysis")) {
 
-                Set<String> indicatorNames = previewRequest.getQuery().keySet();
+                Set<String> datasetIds = previewRequest.getQuery().keySet();
                 OpenLAPPortConfig methodToVisConfig = previewRequest.getMethodToVisualizationConfig();
 
-                boolean addIndicatorNameColumn = false;
-                String columnId = null;
-                for(OpenLAPColumnConfigData outputConfig : methodToVisConfig.getOutputColumnConfigurationData()){
-                    if(outputConfig.getId().equals("indicator_names"))
-                        addIndicatorNameColumn = true;
-                    else
-                        columnId = outputConfig.getId();
-                }
+                Map<String, OpenLAPDataSet> analyzedDatasetMap = new HashMap<>();
 
-                OpenLAPDataSet combinedAnalyzedDataSet = null;
+                for(String datasetId: datasetIds){
 
-                for(String indicatorName: indicatorNames){
+                    if(datasetId.equals("0")) // skipping 0 since it is the id for the 2nd level analytics method and it does not have a query
+                        continue;
 
-                    String curIndQuery = previewRequest.getQuery().get(indicatorName);
-                    OpenLAPPortConfig queryToMethodConfig = previewRequest.getQueryToMethodConfig().get(indicatorName);
+                    String curIndQuery = previewRequest.getQuery().get(datasetId);
+                    OpenLAPPortConfig queryToMethodConfig = previewRequest.getQueryToMethodConfig().get(datasetId);
+
+                    if(curIndQuery.contains("xxxridxxx")) {
+                        if(!previewRequest.getAdditionalParams().containsKey("rid")){
+                            response.setSuccess(false);
+                            response.setErrorMessage("This indicator require a user code to generate personalized data which is not provided. Try again after refreshing the web page.");
+                            log.error("[Preview-MLAI-End]["+datasetId+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:rid,code:rid-missing");
+                            return response;
+                        }
+                        else{
+                            String userID = previewRequest.getAdditionalParams().get("rid").toString().toUpperCase();
+                            curIndQuery = curIndQuery.replace("xxxridxxx", userID);
+                        }
+                    }
 
                     OpenLAPDataSet queryDataSet = executeIndicatorQuery(curIndQuery, queryToMethodConfig, 0);
 
                     if (queryDataSet == null) {
                         response.setSuccess(false);
-                        response.setErrorMessage("No data found for indicator '" + indicatorName + "'");
-                        log.info("No data found for indicator '" + indicatorName + "'");
+                        response.setErrorMessage("No data found for the dataset '" + datasetId + "'. Try Changing the selections in its 'Dataset' and 'Filters' sections");
+                        log.error("[Preview-MLAI-End]["+datasetId+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:query,code:query-data-empty");
                         return response;
                     }
 
-//                try {
-//                    log.info("Query data: " + mapper.writeValueAsString(queryDataSet));
-//                } catch (Exception exc) {}
+                    //try { log.info("Query data: " + mapper.writeValueAsString(queryDataSet)); } catch (Exception exc) {}
 
 
                     //Validating the analytics method
                     try {
-                        String methodValidJSON = performPutRequest(baseUrl + "/AnalyticsMethods/" + previewRequest.getAnalyticsMethodId().get(indicatorName) + "/validateConfiguration", queryToMethodConfig.toString());
-
+                        String methodValidJSON = performPutRequest(baseUrl + "/AnalyticsMethods/" + previewRequest.getAnalyticsMethodId().get(datasetId) + "/validateConfiguration", queryToMethodConfig.toString());
                         OpenLAPDataSetConfigValidationResult methodValid = mapper.readValue(methodValidJSON, OpenLAPDataSetConfigValidationResult.class);
-
-                        if (!methodValid.isValid())
-                            throw new Exception("Mapping between the data column and the input to analysis method is not valid for indicator '" + indicatorName + "'.");
-
+                        if (!methodValid.isValid()) {
+                            response.setSuccess(false);
+                            response.setErrorMessage(methodValid.getValidationMessage());
+                            log.error("[Preview-MLAI-End]["+datasetId+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-validate,code:unknown,msg:"+methodValid.getValidationMessage());
+                            return response;
+                        }
                     } catch (Exception exc) {
                         response.setSuccess(false);
-                        response.setErrorMessage(exc.getMessage());
-                        log.info(exc.getMessage());
+                        response.setErrorMessage("An unknown error has occurred while validating the inputs to analysis for dataset '" + datasetId + "'. please contact the admins with the following error: " + exc.getMessage());
+                        log.error("[Preview-MLAI-End]["+datasetId+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-validate,code:unknown,msg:"+exc.getMessage());
                         return response;
                     }
 
                     //Applying the analytics method
-                    OpenLAPDataSet analyzedDataSet = null;
+                    OpenLAPDataSet singleAnalyzedDataSet = null;
                     try {
-                        AnalyticsMethod method = analyticsMethodsService.loadAnalyticsMethodInstance(previewRequest.getAnalyticsMethodId().get(indicatorName));
-                        Map<String, String> methodParams = previewRequest.getMethodInputParams();
+                        AnalyticsMethod method = analyticsMethodsService.loadAnalyticsMethodInstance(previewRequest.getAnalyticsMethodId().get(datasetId));
+                        String rawMethodParams = previewRequest.getMethodInputParams().containsKey(datasetId) ? previewRequest.getMethodInputParams().get(datasetId) : "";
+                        Map<String, String> methodParams = rawMethodParams.isEmpty() ? new HashMap<>() : mapper.readValue(rawMethodParams, new TypeReference<HashMap<String,String>>() {});
 
                         method.initialize(queryDataSet, queryToMethodConfig, methodParams);
-                        //method.initialize(queryDataSet, queryToMethodConfig);
-                        analyzedDataSet = method.execute();
-                    } catch (AnalyticsMethodInitializationException amexc) {
+                        singleAnalyzedDataSet = method.execute();
+                    } catch (AnalyticsMethodInitializationException ame) {
                         response.setSuccess(false);
-                        response.setErrorMessage(amexc.getMessage());
-                        log.info(amexc.getMessage());
+                        response.setErrorMessage("An unknown error occurred while starting the analysis for the dataset '" + datasetId + "'. please contact the admins with the following error: " + ame.getMessage());
+                        log.error("[Preview-MLAI-End]["+datasetId+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-initialize,code:unknown,msg:"+ame.getMessage());
                         return response;
                     } catch (Exception exc) {
                         response.setSuccess(false);
-                        response.setErrorMessage(exc.getMessage());
-                        log.info(exc.getMessage());
+                        response.setErrorMessage("An unknown error occurred while performing the analysis for he dataset '" + datasetId + "'. please contact the admins with the following error: " + exc.getMessage());
+                        log.error("[Preview-MLAI-End]["+datasetId+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-execute,code:unknown,msg:"+exc.getMessage());
                         return response;
                     }
 
-
-                    if (analyzedDataSet == null) {
+                    if (singleAnalyzedDataSet == null) {
                         response.setSuccess(false);
-                        response.setErrorMessage("No analyzed data returned from the analytics method");
-                        log.info("No analyzed data returned from the analytics method");
+                        response.setErrorMessage("No analyzed data is generated from the dataset '" + datasetId + "'.");
+                        log.error("[Preview-MLAI-End]["+datasetId+"],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:analysis,code:analysis-data-empty");
                         return response;
                     }
 
-//                    try {
-//                        log.info("Analyzed data: " + mapper.writeValueAsString(analyzedDataSet));
-//                    } catch (Exception exc) {}
-
-                    //Merging analyzed dataset
-                    if(combinedAnalyzedDataSet == null) {
-                        combinedAnalyzedDataSet = analyzedDataSet;
-
-                        if(addIndicatorNameColumn)
-                            if(!combinedAnalyzedDataSet.getColumns().containsKey("indicator_names"))
-                                combinedAnalyzedDataSet.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("indicator_names", OpenLAPColumnDataType.STRING, true, "Indicator Names", "Names of the indicators combines together to form the composite."));
-                    }
-                    else {
-                        List<OpenLAPColumnConfigData> columnConfigDatas = analyzedDataSet.getColumnsConfigurationData();
-
-                        for(OpenLAPColumnConfigData columnConfigData : columnConfigDatas)
-                            combinedAnalyzedDataSet.getColumns().get(columnConfigData.getId()).getData().addAll(analyzedDataSet.getColumns().get(columnConfigData.getId()).getData());
-                    }
-
-                    if(addIndicatorNameColumn) {
-                        int dataSize = analyzedDataSet.getColumns().get(columnId).getData().size();
-
-                        for(int i=0;i<dataSize;i++)
-                            combinedAnalyzedDataSet.getColumns().get("indicator_names").getData().add(indicatorName);
-                    }
+                    analyzedDatasetMap.put(datasetId, singleAnalyzedDataSet);
                 }
 
-//                try {
-//                    log.info("Combined Analyzed data: " + mapper.writeValueAsString(combinedAnalyzedDataSet));
-//                } catch (Exception exc) {}
+                //mergning dataset
+                List<OpenLAPDataSetMergeMapping> mergeMappings = previewRequest.getDataSetMergeMappingList();
+                OpenLAPDataSet mergedDataset = null;
+                String mergeStatus = "";
+
+                try {
+                    while (mergeMappings.size() > 0) {
+                        OpenLAPDataSet firstDataset = null;
+                        OpenLAPDataSet secondDataset = null;
+
+                        for (OpenLAPDataSetMergeMapping mergeMapping : mergeMappings) {
+                            String key1 = mergeMapping.getIndRefKey1();
+                            String key2 = mergeMapping.getIndRefKey2();
+
+                            int dashCountKey1 = StringUtils.countMatches(key1, "-"); //Merged keys will always be in key1
+                            //int dashCountKey2 = StringUtils.countMatches(key2, "-");
+
+                            if (dashCountKey1 == 0) {
+                                firstDataset = analyzedDatasetMap.get(key1);
+                                secondDataset = analyzedDatasetMap.get(key2);
+                            } else {
+                                if (!mergeStatus.isEmpty() && key1.equals(mergeStatus)) {
+                                    firstDataset = mergedDataset;
+                                    secondDataset = analyzedDatasetMap.get(key2);
+                                    key1 = "(" + key1 + ")";
+                                } else
+                                    continue;
+                            }
+                            OpenLAPDataSet processedDataset = mergeOpenLAPDataSets(firstDataset, secondDataset, mergeMapping);
+                            if (processedDataset != null) {
+                                mergedDataset = processedDataset;
+                                mergeStatus = key1 + "-" + key2;
+                                mergeMappings.remove(mergeMapping);
+                            }
+                            break;
+                        }
+                    }
+                }
+                catch (Exception exc){
+                    response.setSuccess(false);
+                    response.setErrorMessage("An unknown error occurred while mergning the dataset. please contact the admins with the following error: " + exc.getMessage());
+                    log.error("[Preview-MLAI-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:dataset-merge,code:unknown,msg:"+exc.getMessage());
+                    return response;
+                }
+
+                //try { log.info("Merged Analyzed data: " + mapper.writeValueAsString(mergedDataset)); } catch (Exception exc) {}
 
 
+                OpenLAPDataSet analyzedDataSet = null;
 
-//                try {
-//                    log.info("Analyzed data: " + mapper.writeValueAsString(analyzedDataSet));
-//                } catch (Exception exc) { }
+                //Applying the final analysis whose configuration is stored always with id "0"
+                OpenLAPPortConfig finalQueryToMethodConfig = previewRequest.getQueryToMethodConfig().get("0");
+                try {
+                    AnalyticsMethod method = analyticsMethodsService.loadAnalyticsMethodInstance(previewRequest.getAnalyticsMethodId().get("0"));
+                    String rawMethodParams = previewRequest.getMethodInputParams().containsKey("0")?previewRequest.getMethodInputParams().get("0"):"";
+                    Map<String, String> methodParams = rawMethodParams.isEmpty() ? new HashMap<>() : mapper.readValue(rawMethodParams, new TypeReference<HashMap<String,String>>() {});
+
+                    method.initialize(mergedDataset, finalQueryToMethodConfig, methodParams);
+                    analyzedDataSet = method.execute();
+                } catch (AnalyticsMethodInitializationException amexc) {
+                    response.setSuccess(false);
+                    response.setErrorMessage("An unknown error occurred while starting the final analysis. please contact the admins with the following error: " + amexc.getMessage());
+                    log.error("[Preview-MLAI-End][final],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-initialize,code:unknown,msg:"+amexc.getMessage());
+                    return response;
+                } catch (Exception exc) {
+                    response.setSuccess(false);
+                    response.setErrorMessage("An unknown error occurred while performing the final analysis. please contact the admins with the following error: " + exc.getMessage());
+                    log.error("[Preview-MLAI-End][final],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:method-execute,code:unknown,msg:"+exc.getMessage());
+                    return response;
+                }
+
+                if (analyzedDataSet == null) {
+                    response.setSuccess(false);
+                    response.setErrorMessage("No analyzed data is generated from the final analysis.");
+                    log.error("[Preview-MLAI-End][final],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:analysis,code:analysis-data-empty");
+                    return response;
+                }
+
+                //try { log.info("Analyzed data: " + mapper.writeValueAsString(analyzedDataSet)); } catch (Exception exc) { }
 
 
-                //Accessing Analytics method
-                //VisualizationMethodConfigurationResponse visMethodConfigResponse = null;
 
                 //visualizing the analyzed data
                 String indicatorCode = "";
 
-
                 //Validating the visualization technique
                 try {
-
                     ValidateVisualizationMethodConfigurationRequest visRequest = new ValidateVisualizationMethodConfigurationRequest();
                     visRequest.setConfigurationMapping(methodToVisConfig);
-
                     String visRequestJSON = mapper.writeValueAsString(visRequest);
-
-//                String visValidResponseJSON = performJSONPostRequest(visualizationURL + "/frameworks/" + previewRequest.getVisualizationFrameworkId() + "/methods/" + previewRequest.getVisualizationMethodId() + "/validateConfiguration",visRequestJSON);
-//                ValidateVisualizationMethodConfigurationResponse visValid =  mapper.readValue(visValidResponseJSON, ValidateVisualizationMethodConfigurationResponse.class);
-
                     ValidateVisualizationMethodConfigurationResponse visValid = performJSONPostRequest(visualizationURL + "/frameworks/" + previewRequest.getVisualizationFrameworkId() + "/methods/" + previewRequest.getVisualizationMethodId() + "/validateConfiguration", visRequestJSON, ValidateVisualizationMethodConfigurationResponse.class);
 
-                    if (!visValid.isConfigurationValid())
-                        throw new Exception("Mapping between the output of method and input of visualization is not valid.");
+                    if (!visValid.isConfigurationValid()) {
+                        response.setSuccess(false);
+                        response.setErrorMessage(visValid.getValidationMessage());
+                        log.error("[Preview-MLAI-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-validate,code:unknown,msg:"+visValid.getValidationMessage());
+                        return response;
+                    }
 
                 } catch (Exception exc) {
                     response.setSuccess(false);
                     response.setErrorMessage(exc.getMessage());
-                    log.info(exc.getMessage());
+                    log.error("[Preview-MLAI-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-validate,code:unknown,msg:"+exc.getMessage());
                     return response;
                 }
 
@@ -1174,14 +1213,11 @@ public class AnalyticsEngineService {
                     GenerateVisualizationCodeRequest visualRequest = new GenerateVisualizationCodeRequest();
                     visualRequest.setFrameworkId(previewRequest.getVisualizationFrameworkId());
                     visualRequest.setMethodId(previewRequest.getVisualizationMethodId());
-                    visualRequest.setDataSet(combinedAnalyzedDataSet);
+                    visualRequest.setDataSet(analyzedDataSet);
                     visualRequest.setPortConfiguration(methodToVisConfig);
                     visualRequest.setParams(previewRequest.getAdditionalParams());
 
                     String visualRequestJSON = mapper.writeValueAsString(visualRequest);
-
-                    //String visualResponseJSON = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON);
-                    //GenerateVisualizationCodeResponse visualResponse = mapper.readValue(visualResponseJSON, GenerateVisualizationCodeResponse.class);
 
                     GenerateVisualizationCodeResponse visualResponse = performJSONPostRequest(visualizationURL + "/generateVisualizationCode", visualRequestJSON, GenerateVisualizationCodeResponse.class);
 
@@ -1189,7 +1225,7 @@ public class AnalyticsEngineService {
                 } catch (Exception exc) {
                     response.setSuccess(false);
                     response.setErrorMessage(exc.getMessage());
-                    log.info(exc.getMessage());
+                    log.error("[Preview-MLAI-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:vis-execute,code:unknown,msg:"+exc.getMessage());
                     return response;
                 }
 
@@ -1197,11 +1233,12 @@ public class AnalyticsEngineService {
                 response.setErrorMessage("");
                 response.setVisualizationCode(encodeURIComponent(indicatorCode));
             }
+            log.info("[Preview-MLAI-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime));
             return response;
         } catch (Exception exc) {
             response.setSuccess(false);
             response.setErrorMessage(exc.getMessage());
-            log.info(exc.getMessage());
+            log.error("[Preview-MLAI-End],count:"+localPreviewCount+",time:" + (System.currentTimeMillis()-indicatorExecutionStartTime)+",step:indicator-preview,code:unknown,msg:"+exc.getMessage());
             return response;
         }
     }
@@ -1237,44 +1274,56 @@ public class AnalyticsEngineService {
                 ArrayList newData;
                 switch (column.getConfigurationData().getType())
                 {
-                    case BYTE:
-                        newColumn = new OpenLAPDataColumn<Byte>(column.getConfigurationData().getId(), OpenLAPColumnDataType.BYTE, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
-                        newData = new ArrayList<Byte>(Collections.nCopies(firstDataSize, (byte)intDefaultValue));
-                        break;
-                    case SHORT:
-                        newColumn = new OpenLAPDataColumn<Short>(column.getConfigurationData().getId(), OpenLAPColumnDataType.SHORT, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
-                        newData = new ArrayList<Short>(Collections.nCopies(firstDataSize, (short)intDefaultValue));
-                        break;
-                    case STRING:
-                        newColumn = new OpenLAPDataColumn<String>(column.getConfigurationData().getId(), OpenLAPColumnDataType.STRING, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                    case BYTE:
+//                        newColumn = new OpenLAPDataColumn<Byte>(column.getConfigurationData().getId(), OpenLAPColumnDataType.BYTE, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                        newData = new ArrayList<Byte>(Collections.nCopies(firstDataSize, (byte)intDefaultValue));
+//                        break;
+//                    case SHORT:
+//                        newColumn = new OpenLAPDataColumn<Short>(column.getConfigurationData().getId(), OpenLAPColumnDataType.SHORT, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                        newData = new ArrayList<Short>(Collections.nCopies(firstDataSize, (short)intDefaultValue));
+//                        break;
+//                    case STRING:
+//                        newColumn = new OpenLAPDataColumn<String>(column.getConfigurationData().getId(), OpenLAPColumnDataType.STRING, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                        newData = new ArrayList<String>(Collections.nCopies(firstDataSize, strDefaultValue));
+//                        break;
+//                    case INTEGER:
+//                        newColumn = new OpenLAPDataColumn<Integer>(column.getConfigurationData().getId(), OpenLAPColumnDataType.INTEGER, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                        newData = new ArrayList<Integer>(Collections.nCopies(firstDataSize, intDefaultValue));
+//                        break;
+//                    case BOOLEAN:
+//                        newColumn = new OpenLAPDataColumn<Boolean>(column.getConfigurationData().getId(), OpenLAPColumnDataType.BOOLEAN, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                        newData = new ArrayList<Boolean>(Collections.nCopies(firstDataSize, false));
+//                        break;
+//                    case LONG:
+//                        newColumn = new OpenLAPDataColumn<Long>(column.getConfigurationData().getId(), OpenLAPColumnDataType.LONG, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                        newData = new ArrayList<Long>(Collections.nCopies(firstDataSize, (long)intDefaultValue));
+//                        break;
+//                    case FLOAT:
+//                        newColumn = new OpenLAPDataColumn<Float>(column.getConfigurationData().getId(), OpenLAPColumnDataType.FLOAT, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                        newData = new ArrayList<Float>(Collections.nCopies(firstDataSize, (float)intDefaultValue));
+//                        break;
+//                    case LOCAL_DATE_TIME:
+//                        newColumn = new OpenLAPDataColumn<LocalDateTime>(column.getConfigurationData().getId(), OpenLAPColumnDataType.LOCAL_DATE_TIME, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                        newData = new ArrayList<LocalDateTime>(Collections.nCopies(firstDataSize, LocalDateTime.MIN));
+//                        break;
+//                    case CHAR:
+//                        newColumn = new OpenLAPDataColumn<Character>(column.getConfigurationData().getId(), OpenLAPColumnDataType.CHAR, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+//                        newData = new ArrayList<Character>(Collections.nCopies(firstDataSize, charDefaultValue));
+//                        break;
+                    case Text:
+                        newColumn = new OpenLAPDataColumn<String>(column.getConfigurationData().getId(), OpenLAPColumnDataType.Text, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
                         newData = new ArrayList<String>(Collections.nCopies(firstDataSize, strDefaultValue));
                         break;
-                    case INTEGER:
-                        newColumn = new OpenLAPDataColumn<Integer>(column.getConfigurationData().getId(), OpenLAPColumnDataType.INTEGER, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
-                        newData = new ArrayList<Integer>(Collections.nCopies(firstDataSize, intDefaultValue));
-                        break;
-                    case BOOLEAN:
-                        newColumn = new OpenLAPDataColumn<Boolean>(column.getConfigurationData().getId(), OpenLAPColumnDataType.BOOLEAN, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+                    case TrueFalse:
+                        newColumn = new OpenLAPDataColumn<Boolean>(column.getConfigurationData().getId(), OpenLAPColumnDataType.TrueFalse, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
                         newData = new ArrayList<Boolean>(Collections.nCopies(firstDataSize, false));
                         break;
-                    case LONG:
-                        newColumn = new OpenLAPDataColumn<Long>(column.getConfigurationData().getId(), OpenLAPColumnDataType.LONG, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
-                        newData = new ArrayList<Long>(Collections.nCopies(firstDataSize, (long)intDefaultValue));
-                        break;
-                    case FLOAT:
-                        newColumn = new OpenLAPDataColumn<Float>(column.getConfigurationData().getId(), OpenLAPColumnDataType.FLOAT, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+                    case Numeric:
+                        newColumn = new OpenLAPDataColumn<Float>(column.getConfigurationData().getId(), OpenLAPColumnDataType.Numeric, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
                         newData = new ArrayList<Float>(Collections.nCopies(firstDataSize, (float)intDefaultValue));
                         break;
-                    case LOCAL_DATE_TIME:
-                        newColumn = new OpenLAPDataColumn<LocalDateTime>(column.getConfigurationData().getId(), OpenLAPColumnDataType.LOCAL_DATE_TIME, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
-                        newData = new ArrayList<LocalDateTime>(Collections.nCopies(firstDataSize, LocalDateTime.MIN));
-                        break;
-                    case CHAR:
-                        newColumn = new OpenLAPDataColumn<Character>(column.getConfigurationData().getId(), OpenLAPColumnDataType.CHAR, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
-                        newData = new ArrayList<Character>(Collections.nCopies(firstDataSize, charDefaultValue));
-                        break;
                     default:
-                        newColumn = new OpenLAPDataColumn<String>(column.getConfigurationData().getId(), OpenLAPColumnDataType.STRING, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
+                        newColumn = new OpenLAPDataColumn<String>(column.getConfigurationData().getId(), OpenLAPColumnDataType.Text, column.getConfigurationData().isRequired(), column.getConfigurationData().getTitle(), column.getConfigurationData().getDescription());
                         newData = new ArrayList<String>(Collections.nCopies(firstDataSize, strDefaultValue));
                         break;
                 }
@@ -1318,32 +1367,41 @@ public class AnalyticsEngineService {
                     else{
                         switch (column.getConfigurationData().getType())
                         {
-                            case BYTE:
-                                firstData.get(column.getConfigurationData().getId()).add((byte)intDefaultValue);
-                                break;
-                            case SHORT:
-                                firstData.get(column.getConfigurationData().getId()).add((short)intDefaultValue);
-                                break;
-                            case STRING:
+//                            case BYTE:
+//                                firstData.get(column.getConfigurationData().getId()).add((byte)intDefaultValue);
+//                                break;
+//                            case SHORT:
+//                                firstData.get(column.getConfigurationData().getId()).add((short)intDefaultValue);
+//                                break;
+//                            case STRING:
+//                                firstData.get(column.getConfigurationData().getId()).add(strDefaultValue);
+//                                break;
+//                            case INTEGER:
+//                                firstData.get(column.getConfigurationData().getId()).add(intDefaultValue);
+//                                break;
+//                            case BOOLEAN:
+//                                firstData.get(column.getConfigurationData().getId()).add(false);
+//                                break;
+//                            case LONG:
+//                                firstData.get(column.getConfigurationData().getId()).add((long)intDefaultValue);
+//                                break;
+//                            case FLOAT:
+//                                firstData.get(column.getConfigurationData().getId()).add((float)intDefaultValue);
+//                                break;
+//                            case LOCAL_DATE_TIME:
+//                                firstData.get(column.getConfigurationData().getId()).add(LocalDateTime.MIN);
+//                                break;
+//                            case CHAR:
+//                                firstData.get(column.getConfigurationData().getId()).add(charDefaultValue);
+//                                break;
+                            case Text:
                                 firstData.get(column.getConfigurationData().getId()).add(strDefaultValue);
                                 break;
-                            case INTEGER:
-                                firstData.get(column.getConfigurationData().getId()).add(intDefaultValue);
-                                break;
-                            case BOOLEAN:
+                            case TrueFalse:
                                 firstData.get(column.getConfigurationData().getId()).add(false);
                                 break;
-                            case LONG:
-                                firstData.get(column.getConfigurationData().getId()).add((long)intDefaultValue);
-                                break;
-                            case FLOAT:
+                            case Numeric:
                                 firstData.get(column.getConfigurationData().getId()).add((float)intDefaultValue);
-                                break;
-                            case LOCAL_DATE_TIME:
-                                firstData.get(column.getConfigurationData().getId()).add(LocalDateTime.MIN);
-                                break;
-                            case CHAR:
-                                firstData.get(column.getConfigurationData().getId()).add(charDefaultValue);
                                 break;
                             default:
                                 firstData.get(column.getConfigurationData().getId()).add(strDefaultValue);
@@ -1868,7 +1926,9 @@ public class AnalyticsEngineService {
         return allGoals;
     }
 
-    public List<AnalyticsGoal> getActiveGoals(HttpServletRequest request) {
+    public List<AnalyticsGoal> getActiveGoals(String userid, HttpServletRequest request) {
+        if(userid!=null)
+            log.info("[Editor-New],user:"+userid);
         String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
 
         ObjectMapper mapper = new ObjectMapper();
@@ -2051,6 +2111,8 @@ public class AnalyticsEngineService {
         try {
             ObjectMapper mapper = new ObjectMapper();
 
+            //System.out.println("getAttributesValues: cateogryIDs=" + cateogryIDs + "  source=" + source + "  platform=" + platform + "  action=" + action + "  key=" + key) ;
+
             String whereQuery = "";
 
             if (!isStringEmpty(source)) {
@@ -2132,34 +2194,145 @@ public class AnalyticsEngineService {
         return getEvents("timestamp", source, platform, action, session, timestampBegin, timestampEnd, sortDirection);
     }
 
-    public List<OpenLAPColumnConfigData> getDataColumnsByIDs(String categoryIDs, HttpServletRequest request) {
+//    public List<OpenLAPColumnConfigData> getDataColumnsByIDs(String categoryIDs, HttpServletRequest request) {
+//        String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
+//        List<OpenLAPColumnConfigData> methodInputs = null;
+//
+//        try {
+//            ObjectMapper mapper = new ObjectMapper();
+//            methodInputs =  new ArrayList<OpenLAPColumnConfigData>();
+//
+//            // Manually adding columns related to the Event table (ALL EVENT COLUMNS SHOULD ALWAYS BE SEND BEFORE ENTITIES COLUMNS)
+//            methodInputs.add(new OpenLAPColumnConfigData("timestamp", OpenLAPColumnDataType.Numeric, true, "Timestamp", "Time when the learning event occurred in unix timestamp format"));
+//            methodInputs.add(new OpenLAPColumnConfigData("source", OpenLAPColumnDataType.Text, true, "Source", "Source of the learning event."));
+//            methodInputs.add(new OpenLAPColumnConfigData("platform", OpenLAPColumnDataType.Text, true, "Platform", "Platform where the learning event occurred."));
+//            //methodInputs.add(new OpenLAPColumnConfigData("session", OpenLAPColumnDataType.STRING, true, "Session", "Session in which the learning event occured."));
+//            methodInputs.add(new OpenLAPColumnConfigData("action", OpenLAPColumnDataType.Text, true, "Action", "Type of action performed in the learning event."));
+//            methodInputs.add(new OpenLAPColumnConfigData("category", OpenLAPColumnDataType.Text, true, "Category", "Category of the learning event."));
+//
+//            methodInputs.add(new OpenLAPColumnConfigData("user", OpenLAPColumnDataType.Text, true, "User", "Anonymized user who performed the learning event."));
+//
+//            String[] catIDs = categoryIDs.split(",");
+//            String subQuery = "";
+//
+//            for (String catID : catIDs)
+//                subQuery += "select [K_ID] from Category_Keys_Mapping where C_ID = " + catID + " intersect ";
+//
+//            subQuery = subQuery.substring(0, subQuery.lastIndexOf(" intersect "));
+//
+//            String query = "select s.[Key], s.[Description], s.Title, s.[Type] FROM Keys_Specifications s " +
+//                    "WHERE s.[ID] in (" + subQuery + ") order by s.Title";
+//
+//            // Adding columns related to the Entity table
+//            //String query = "SELECT S.[Key], S.[Description], S.Title, S.[Type] FROM Keys_Specifications S " +
+//            //        "INNER JOIN Category_Keys_Mapping M ON M.K_ID = S.ID " +
+//            //        "WHERE M.C_ID = " + categoryID;
+//
+//            List<Map<String, Object>> dataList = executeSQLQueryRaw(query);
+//
+//            if (dataList != null && dataList.size() > 0) {
+//                for (Map<String, Object> map : dataList) {
+//                    OpenLAPColumnDataType colType = null;
+//
+//                    switch (map.get("Type").toString()) {
+//                        case "Numeric":
+//                            colType = OpenLAPColumnDataType.Numeric;
+//                            break;
+//                        case "TrueFalse":
+//                            colType = OpenLAPColumnDataType.TrueFalse;
+//                            break;
+//                        case "Text":
+//                            colType = OpenLAPColumnDataType.Text;
+//                            break;
+//                        default:
+//                            colType = OpenLAPColumnDataType.Text;
+//                            break;
+//                    }
+//                    String colId = map.get("Key").toString();
+//                    String colTitle = map.get("Title").toString();
+//                    String colDesc = map.get("Description").toString();
+//
+//                    methodInputs.add(new OpenLAPColumnConfigData(colId, colType, false, colTitle, colDesc));
+//                }
+//            }
+//
+//        } catch (Exception exc) {
+//            System.out.println(exc.getMessage());
+//            return null;
+//        }
+//
+//        return methodInputs;
+//    }
+
+    public List<OpenLAPColumnConfigData> getDataColumnsByIDs(String categoryID, String source, String platform, String action, HttpServletRequest request) {
         String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
         List<OpenLAPColumnConfigData> methodInputs = null;
+
+        //System.out.println("getDataColumnsByIDs: categoryID=" + categoryID + "  source=" + source + "  platform=" + platform + "  action=" + action) ;
 
         try {
             ObjectMapper mapper = new ObjectMapper();
             methodInputs =  new ArrayList<OpenLAPColumnConfigData>();
 
             // Manually adding columns related to the Event table (ALL EVENT COLUMNS SHOULD ALWAYS BE SEND BEFORE ENTITIES COLUMNS)
-            methodInputs.add(new OpenLAPColumnConfigData("timestamp", OpenLAPColumnDataType.INTEGER, true, "Timestamp", "Time when the learning event occurred in unix timestamp format"));
-            methodInputs.add(new OpenLAPColumnConfigData("source", OpenLAPColumnDataType.STRING, true, "Source", "Source of the learning event."));
-            methodInputs.add(new OpenLAPColumnConfigData("platform", OpenLAPColumnDataType.STRING, true, "Platform", "Platform where the learning event occurred."));
+            methodInputs.add(new OpenLAPColumnConfigData("action", OpenLAPColumnDataType.Text, true, "Action", "Type of action performed in the learning event."));
+            methodInputs.add(new OpenLAPColumnConfigData("category", OpenLAPColumnDataType.Text, true, "Category", "Category of the learning event."));
+            methodInputs.add(new OpenLAPColumnConfigData("platform", OpenLAPColumnDataType.Text, true, "Platform", "Platform where the learning event occurred."));
             //methodInputs.add(new OpenLAPColumnConfigData("session", OpenLAPColumnDataType.STRING, true, "Session", "Session in which the learning event occured."));
-            methodInputs.add(new OpenLAPColumnConfigData("action", OpenLAPColumnDataType.STRING, true, "Action", "Type of action performed in the learning event."));
-            methodInputs.add(new OpenLAPColumnConfigData("category", OpenLAPColumnDataType.STRING, true, "Category", "Category of the learning event."));
+            methodInputs.add(new OpenLAPColumnConfigData("source", OpenLAPColumnDataType.Text, true, "Source", "Source of the learning event."));
+            methodInputs.add(new OpenLAPColumnConfigData("timestamp", OpenLAPColumnDataType.Numeric, true, "Timestamp", "Time when the learning event occurred in unix timestamp format"));
 
-            methodInputs.add(new OpenLAPColumnConfigData("user", OpenLAPColumnDataType.STRING, true, "User", "Anonymized user who performed the learning event."));
+            methodInputs.add(new OpenLAPColumnConfigData("user", OpenLAPColumnDataType.Text, true, "User", "Anonymized user who performed the learning event."));
 
-            String[] catIDs = categoryIDs.split(",");
-            String subQuery = "";
+            String whereQuery = "";
 
-            for (String catID : catIDs)
-                subQuery += "select [K_ID] from Category_Keys_Mapping where C_ID = " + catID + " intersect ";
+            if (!isStringEmpty(source)) {
+                String[] sources = source.split(",");
 
-            subQuery = subQuery.substring(0, subQuery.lastIndexOf(" intersect "));
+                if(sources.length > 1)
+                    whereQuery = " WHERE e.Source IN ('" + StringUtils.join(sources,"','") + "')";
+                else
+                    whereQuery = " WHERE e.Source = '" + source + "'";
+            }
+
+            if (!isStringEmpty(platform)) {
+                String combiningClause = isStringEmpty(whereQuery) ? " WHERE" : " AND";
+
+                String[] platforms = platform.split(",");
+
+                if(platforms.length > 1)
+                    whereQuery += combiningClause + " e.Platform IN ('" + StringUtils.join(platforms,"','") + "')";
+                else
+                    whereQuery += combiningClause + " e.Platform = '" + platform + "'";
+            }
+
+            if (!isStringEmpty(action)) {
+                String combiningClause = isStringEmpty(whereQuery) ? " WHERE" : " AND";
+
+                String[] actions = action.split(",");
+
+                if(actions.length > 1)
+                    whereQuery += combiningClause + " e.Action IN ('" + StringUtils.join(actions,"','") + "')";
+                else
+                    whereQuery += combiningClause + " e.Action = '" + action + "'";
+            }
+
+            if (!isStringEmpty(categoryID)) {
+                String combiningClause = isStringEmpty(whereQuery) ? " WHERE" : " AND";
+
+                String[] categoryIDs = categoryID.split(",");
+
+                if(categoryIDs.length > 1)
+                    whereQuery += combiningClause + " e.C_ID IN (" + StringUtils.join(categoryIDs,",") + ")";
+                else
+                    whereQuery += combiningClause + " e.C_ID = " + categoryID;
+            }
+
+
+            String subQuery = "SELECT distinct t.Entity_Key FROM Entity t INNER JOIN Event e ON t.Event_fk = e.Event_Id" + whereQuery;
 
             String query = "select s.[Key], s.[Description], s.Title, s.[Type] FROM Keys_Specifications s " +
-                    "WHERE s.[ID] in (" + subQuery + ")";
+                    "WHERE s.[Key] in (" + subQuery + ") order by s.Title";
 
             // Adding columns related to the Entity table
             //String query = "SELECT S.[Key], S.[Description], S.Title, S.[Type] FROM Keys_Specifications S " +
@@ -2173,35 +2346,17 @@ public class AnalyticsEngineService {
                     OpenLAPColumnDataType colType = null;
 
                     switch (map.get("Type").toString()) {
-                        case "INTEGER":
-                            colType = OpenLAPColumnDataType.INTEGER;
+                        case "Numeric":
+                            colType = OpenLAPColumnDataType.Numeric;
                             break;
-                        case "BOOLEAN":
-                            colType = OpenLAPColumnDataType.BOOLEAN;
+                        case "TrueFalse":
+                            colType = OpenLAPColumnDataType.TrueFalse;
                             break;
-                        case "BYTE":
-                            colType = OpenLAPColumnDataType.BYTE;
-                            break;
-                        case "CHAR":
-                            colType = OpenLAPColumnDataType.CHAR;
-                            break;
-                        case "FLOAT":
-                            colType = OpenLAPColumnDataType.FLOAT;
-                            break;
-                        case "LOCAL_DATE_TIME":
-                            colType = OpenLAPColumnDataType.LOCAL_DATE_TIME;
-                            break;
-                        case "LONG":
-                            colType = OpenLAPColumnDataType.LONG;
-                            break;
-                        case "SHORT":
-                            colType = OpenLAPColumnDataType.SHORT;
-                            break;
-                        case "STRING":
-                            colType = OpenLAPColumnDataType.STRING;
+                        case "Text":
+                            colType = OpenLAPColumnDataType.Text;
                             break;
                         default:
-                            colType = OpenLAPColumnDataType.STRING;
+                            colType = OpenLAPColumnDataType.Text;
                             break;
                     }
                     String colId = map.get("Key").toString();
@@ -2229,13 +2384,13 @@ public class AnalyticsEngineService {
             methodInputs =  new ArrayList<OpenLAPColumnConfigData>();
 
             // Manually adding columns related to the Event table (ALL EVENT COLUMNS SHOULD ALWAYS BE SEND BEFORE ENTITIES COLUMNS)
-            methodInputs.add(new OpenLAPColumnConfigData("timestamp", OpenLAPColumnDataType.INTEGER, true, "Timestamp", "Time when the learning event occurred in unix timestamp format"));
-            methodInputs.add(new OpenLAPColumnConfigData("session", OpenLAPColumnDataType.STRING, true, "Session", "Session in which the learning event occured."));
-            methodInputs.add(new OpenLAPColumnConfigData("action", OpenLAPColumnDataType.STRING, true, "Action", "Type of action performed in the learning event."));
-            methodInputs.add(new OpenLAPColumnConfigData("platform", OpenLAPColumnDataType.STRING, true, "Platform", "Platform where the learning event occurred."));
-            methodInputs.add(new OpenLAPColumnConfigData("category", OpenLAPColumnDataType.STRING, true, "Category", "Category of the learning event."));
-            methodInputs.add(new OpenLAPColumnConfigData("source", OpenLAPColumnDataType.STRING, true, "Source", "Source of the learning event."));
-            methodInputs.add(new OpenLAPColumnConfigData("user", OpenLAPColumnDataType.STRING, true, "User", "Anonymized user who performed the learning event."));
+            methodInputs.add(new OpenLAPColumnConfigData("action", OpenLAPColumnDataType.Text, true, "Action", "Type of action performed in the learning event."));
+            methodInputs.add(new OpenLAPColumnConfigData("category", OpenLAPColumnDataType.Text, true, "Category", "Category of the learning event."));
+            methodInputs.add(new OpenLAPColumnConfigData("platform", OpenLAPColumnDataType.Text, true, "Platform", "Platform where the learning event occurred."));
+            methodInputs.add(new OpenLAPColumnConfigData("session", OpenLAPColumnDataType.Text, true, "Session", "Session in which the learning event occured."));
+            methodInputs.add(new OpenLAPColumnConfigData("source", OpenLAPColumnDataType.Text, true, "Source", "Source of the learning event."));
+            methodInputs.add(new OpenLAPColumnConfigData("timestamp", OpenLAPColumnDataType.Numeric, true, "Timestamp", "Time when the learning event occurred in unix timestamp format"));
+            methodInputs.add(new OpenLAPColumnConfigData("user", OpenLAPColumnDataType.Text, true, "User", "Anonymized user who performed the learning event."));
 
 
             String[] catNames = categoryNames.split(",");
@@ -2247,7 +2402,7 @@ public class AnalyticsEngineService {
             subQuery = subQuery.substring(0, subQuery.lastIndexOf(" intersect "));
 
             String query = "select s.[Key], s.[Description], s.Title, s.[Type] FROM Keys_Specifications s " +
-                    "WHERE s.[ID] in (" + subQuery + ")";
+                    "WHERE s.[ID] in (" + subQuery + ") order by s.Title";
 
 
 //            String query = "SELECT S.[Key], S.[Description], S.Title, S.[Type] FROM Category C " +
@@ -2262,35 +2417,17 @@ public class AnalyticsEngineService {
                     OpenLAPColumnDataType colType = null;
 
                     switch (map.get("Type").toString()) {
-                        case "INTEGER":
-                            colType = OpenLAPColumnDataType.INTEGER;
+                        case "TrueFalse":
+                            colType = OpenLAPColumnDataType.TrueFalse;
                             break;
-                        case "BOOLEAN":
-                            colType = OpenLAPColumnDataType.BOOLEAN;
+                        case "Numeric":
+                            colType = OpenLAPColumnDataType.Numeric;
                             break;
-                        case "BYTE":
-                            colType = OpenLAPColumnDataType.BYTE;
-                            break;
-                        case "CHAR":
-                            colType = OpenLAPColumnDataType.CHAR;
-                            break;
-                        case "FLOAT":
-                            colType = OpenLAPColumnDataType.FLOAT;
-                            break;
-                        case "LOCAL_DATE_TIME":
-                            colType = OpenLAPColumnDataType.LOCAL_DATE_TIME;
-                            break;
-                        case "LONG":
-                            colType = OpenLAPColumnDataType.LONG;
-                            break;
-                        case "SHORT":
-                            colType = OpenLAPColumnDataType.SHORT;
-                            break;
-                        case "STRING":
-                            colType = OpenLAPColumnDataType.STRING;
+                        case "Text":
+                            colType = OpenLAPColumnDataType.Text;
                             break;
                         default:
-                            colType = OpenLAPColumnDataType.STRING;
+                            colType = OpenLAPColumnDataType.Text;
                             break;
                     }
                     String colId = map.get("Key").toString();
@@ -2342,6 +2479,24 @@ public class AnalyticsEngineService {
         return methodInputs;
     }
 
+    public List<OpenLAPDynamicParam> getAnalyticsMethodDynamicParams(long id, HttpServletRequest request) {
+        String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
+        List<OpenLAPDynamicParam> methodParams = null;
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            String methodInputsJSON = performGetRequest(baseUrl + "/AnalyticsMethods/"+id+"/getDynamicParams");
+            methodParams = mapper.readValue(methodInputsJSON, mapper.getTypeFactory().constructCollectionType(List.class, OpenLAPDynamicParam.class));
+            Collections.sort(methodParams, (OpenLAPDynamicParam o1, OpenLAPDynamicParam o2) -> (o1.getTitle().compareTo(o2.getTitle())));
+        } catch (Exception exc) {
+            System.out.println(exc.getMessage());
+            return null;
+        }
+
+        return methodParams;
+    }
+
     public List<OpenLAPColumnConfigData> getVisualizationMethodInputs(long frameworkId, long methodId, HttpServletRequest request) {
         List<OpenLAPColumnConfigData> methodInputs = null;
 
@@ -2353,6 +2508,8 @@ public class AnalyticsEngineService {
             VisualizationMethodConfigurationResponse visResponse = mapper.readValue(methodInputsJSON, VisualizationMethodConfigurationResponse.class);
 
             methodInputs = visResponse.getMethodConfiguration().getInput().getColumnsConfigurationData();
+
+            Collections.sort(methodInputs, (OpenLAPColumnConfigData o1, OpenLAPColumnConfigData o2) -> (o1.getTitle().compareTo(o2.getTitle())));
         } catch (Exception exc) {
             System.out.println(exc.getMessage());
             return null;
@@ -2373,7 +2530,9 @@ public class AnalyticsEngineService {
         return questionsResponse;
     }
 
-    public List<QuestionResponse> searchQuestions(String searchParameter, boolean exactSearch, String colName, String sortDirection, boolean sort, HttpServletRequest request){
+    public List<QuestionResponse> searchQuestions(String searchParameter, boolean exactSearch, String colName, String sortDirection, boolean sort, String userId, HttpServletRequest request){
+        if(userId!=null)
+            log.info("[Editor-View],user:"+userId);
         List<QuestionResponse> questionsResponse = new ArrayList<QuestionResponse>();
 
         List<Question> allQuestions = searchQuestions(searchParameter, exactSearch, colName, sortDirection, sort);
@@ -2594,143 +2753,6 @@ public class AnalyticsEngineService {
         return indicatorResponses;
     }
 
-    /*public QuestionSaveResponse saveQuestionAndIndicators(QuestionSaveRequest saveRequest, HttpServletRequest request) {
-        String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
-
-        ObjectMapper mapper = new ObjectMapper();
-
-        QuestionSaveResponse questionSaveResponse = new QuestionSaveResponse();
-
-        Set<Triad> triads = new HashSet<Triad>();
-
-        List<IndicatorSaveResponse> indicatorResponses = new ArrayList<IndicatorSaveResponse>();
-        AnalyticsGoal goal;
-
-        try {
-            String goalsJSON = performGetRequest(baseUrl + "/AnalyticsModules/AnalyticsGoals/" + saveRequest.getGoalID());
-            goal = mapper.readValue(goalsJSON, AnalyticsGoal.class);
-        } catch (Exception exc) {
-            questionSaveResponse.setQuestionSaved(false);
-            questionSaveResponse.setErrorMessage("Problem accessing Analytics Goal: " + exc.getMessage());
-            Log.info("Problem accessing Analytics Goal: " + exc.getMessage());
-            return questionSaveResponse;
-        }
-
-        Question question = new Question();
-        question.setName(saveRequest.getQuestion());
-        //question.setTriads(triads);
-        question.setIndicatorCount(saveRequest.getIndicators().size());
-
-        Question savedQuestion = saveQuestion(question);
-
-        for (IndicatorSaveRequest indicatorRequest : saveRequest.getIndicators()) {
-
-            IndicatorSaveResponse indicatorResponse = new IndicatorSaveResponse();
-            indicatorResponse.setIndicatorClientID(indicatorRequest.getIndicatorClientID());
-
-            try {
-                //Saving the indicator query
-                Indicator ind = new Indicator();
-                ind.setName(indicatorRequest.getName());
-                ind.setQuery(indicatorRequest.getQuery());
-                ind.setComposite(indicatorRequest.isComposite());
-
-                IndicatorReference indicatorReference = null;
-
-                if (indicatorRequest.getServerID() > 0) {
-                    Indicator loadedIndicator = getIndicatorById(indicatorRequest.getServerID());
-
-                    if(loadedIndicator.equals(ind))
-                        indicatorReference = new IndicatorReference(loadedIndicator.getId(), loadedIndicator.getName());
-                    else {
-                        Indicator savedInd = saveIndicator(ind);
-                        indicatorReference = new IndicatorReference(savedInd.getId(), savedInd.getName());
-                    }
-                }
-                else {
-                    Indicator savedInd = saveIndicator(ind);
-                    indicatorReference = new IndicatorReference(savedInd.getId(), savedInd.getName());
-                }
-
-                //Getting Analytics Method metadata
-                AnalyticsMethodMetadata methodMetadata;
-                String analyticsMethodJSON = performGetRequest(baseUrl + "/AnalyticsMethods/" + indicatorRequest.getAnalyticsMethodId());
-                methodMetadata = mapper.readValue(analyticsMethodJSON, AnalyticsMethodMetadata.class);
-
-
-                //Getting Visualization technique metadata
-                VisualizerReference visualizerReference;
-                String visFrameworkJSON = performGetRequest(visualizationURL + "/frameworks/" + indicatorRequest.getVisualizationFrameworkId());
-                VisualizationFrameworkDetailsResponse frameworkResponse = mapper.readValue(visFrameworkJSON, VisualizationFrameworkDetailsResponse.class);
-                String visMethodJSON = performGetRequest(visualizationURL + "/frameworks/"+ indicatorRequest.getVisualizationFrameworkId() + "/methods/"+ indicatorRequest.getVisualizationMethodId());
-                VisualizationMethodDetailsResponse methodResponse = mapper.readValue(visMethodJSON, VisualizationMethodDetailsResponse.class);
-                visualizerReference = new VisualizerReference(
-                            frameworkResponse.getVisualizationFramework().getId(),
-                            methodResponse.getVisualizationMethod().getId(),
-                            frameworkResponse.getVisualizationFramework().getName(),
-                            methodResponse.getVisualizationMethod().getName());
-
-
-                //Validating the data to method port configuration
-                String queryToMethodConfigJSON = indicatorRequest.getQueryToMethodConfig().toString();
-                String queryToMethodConfigValidJSON = performPutRequest(baseUrl + "/AnalyticsMethods/"+indicatorRequest.getAnalyticsMethodId()+"/validateConfiguration", queryToMethodConfigJSON);
-                OpenLAPDataSetConfigValidationResult queryToMethodConfigValid =  mapper.readValue(queryToMethodConfigValidJSON, OpenLAPDataSetConfigValidationResult.class);
-                if(!queryToMethodConfigValid.isValid()){
-                    indicatorResponse.setIndicatorSaved(false);
-                    indicatorResponse.setErrorMessage("Query to Method Port-Configuration is not valid: " + queryToMethodConfigValid.getValidationMessage());
-                    indicatorResponses.add(indicatorResponse);
-                    continue;
-                }
-
-
-                //Validating the method to visualization port configuration
-                ValidateVisualizationMethodConfigurationRequest methodToVisConfigRequest = new  ValidateVisualizationMethodConfigurationRequest();
-                methodToVisConfigRequest.setConfigurationMapping(indicatorRequest.getMethodToVisualizationConfig());
-
-//                String methodToVisConfigValidJSON = performJSONPostRequest(visualizationURL + "/frameworks/"+ indicatorRequest.getVisualizationFrameworkId() + "/methods/"+ indicatorRequest.getVisualizationMethodId()+"/validateConfiguration", mapper.writeValueAsString(methodToVisConfigRequest));
-//                ValidateVisualizationMethodConfigurationResponse methodToVisConfigValid =  mapper.readValue(methodToVisConfigValidJSON, ValidateVisualizationMethodConfigurationResponse.class);
-
-                ValidateVisualizationMethodConfigurationResponse methodToVisConfigValid = performJSONPostRequest(visualizationURL + "/frameworks/"+ indicatorRequest.getVisualizationFrameworkId() + "/methods/"+ indicatorRequest.getVisualizationMethodId()+"/validateConfiguration", mapper.writeValueAsString(methodToVisConfigRequest), ValidateVisualizationMethodConfigurationResponse.class);
-
-                if(!methodToVisConfigValid.isConfigurationValid()){
-                    indicatorResponse.setIndicatorSaved(false);
-                    indicatorResponse.setErrorMessage("Method to Visualization Port-Configuration is not valid: " + methodToVisConfigValid.getValidationMessage());
-                    indicatorResponses.add(indicatorResponse);
-                    continue;
-                }
-
-                //Saving the triad
-                Triad triad = new Triad(saveRequest.getGoalID(), indicatorReference, methodMetadata, visualizerReference, indicatorRequest.getQueryToMethodConfig(), indicatorRequest.getMethodToVisualizationConfig());
-                triad.setCreatedBy(indicatorRequest.getCreatedBy());
-                triad.setParameters(indicatorRequest.getParameters());
-                String triadJSON = triad.toString();
-//                String savedTriadJSON = performJSONPostRequest(baseUrl + "/AnalyticsModules/Triads/", triadJSON);
-//                Triad savedTriad = mapper.readValue(savedTriadJSON, Triad.class);
-
-                Triad savedTriad = performJSONPostRequest(baseUrl + "/AnalyticsModules/Triads/", triadJSON, Triad.class);
-
-                triads.add(savedTriad);
-
-                setQuestionTriadMapping(savedQuestion.getId(), savedTriad.getId());
-
-                indicatorResponse.setIndicatorSaved(true);
-                indicatorResponse.setIndicatorRequestCode(getIndicatorRequestCode(savedTriad));
-
-                indicatorResponses.add(indicatorResponse);
-            }
-            catch (Exception exc) {
-                indicatorResponse.setIndicatorSaved(false);
-                indicatorResponse.setErrorMessage(exc.getMessage());
-            }
-        }
-
-        questionSaveResponse.setIndicatorSaveResponses(indicatorResponses);
-        questionSaveResponse.setQuestionRequestCode(getQuestionRequestCode(triads));
-        questionSaveResponse.setQuestionSaved(true);
-
-        return questionSaveResponse;
-    }*/
-
     public QuestionSaveResponse saveQuestionAndIndicators(QuestionSaveRequest saveRequest, HttpServletRequest request) {
         String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
 
@@ -2738,26 +2760,27 @@ public class AnalyticsEngineService {
 
         ObjectMapper mapper = new ObjectMapper();
 
+        TypeReference<HashMap<String,String>> hashMapType = new TypeReference<HashMap<String,String>>() {};
+
         QuestionSaveResponse questionSaveResponse = new QuestionSaveResponse();
 
         Set<Triad> triads = new HashSet<Triad>();
 
         List<IndicatorSaveResponse> indicatorResponses = new ArrayList<IndicatorSaveResponse>();
-        AnalyticsGoal goal;
-
-        try {
-            String goalsJSON = performGetRequest(baseUrl + "/AnalyticsModules/AnalyticsGoals/" + saveRequest.getGoalID());
-            goal = mapper.readValue(goalsJSON, AnalyticsGoal.class);
-        } catch (Exception exc) {
-            questionSaveResponse.setQuestionSaved(false);
-            questionSaveResponse.setErrorMessage("Problem accessing Analytics Goal: " + exc.getMessage());
-            Log.info("Problem accessing Analytics Goal: " + exc.getMessage());
-            return questionSaveResponse;
-        }
+//        AnalyticsGoal goal;
+//
+//        try {
+//            String goalsJSON = performGetRequest(baseUrl + "/AnalyticsModules/AnalyticsGoals/" + saveRequest.getGoalID());
+//            goal = mapper.readValue(goalsJSON, AnalyticsGoal.class);
+//        } catch (Exception exc) {
+//            questionSaveResponse.setQuestionSaved(false);
+//            questionSaveResponse.setErrorMessage("Problem accessing Analytics Goal: " + exc.getMessage());
+//            Log.info("Problem accessing Analytics Goal: " + exc.getMessage());
+//            return questionSaveResponse;
+//        }
 
         Question question = new Question();
         question.setName(saveRequest.getQuestion());
-        //question.setTriads(triads);
         question.setIndicatorCount(saveRequest.getIndicators().size());
 
         Question savedQuestion = saveQuestion(question);
@@ -2783,6 +2806,8 @@ public class AnalyticsEngineService {
                 Indicator savedInd = saveIndicator(ind);
                 indicatorReference.getIndicators().put("0", new IndicatorEntry(savedInd.getId(), savedInd.getName()));
 
+                indicatorReference.setDataSetMergeMappingList(indicatorRequest.getDataSetMergeMappingList());
+
                 //ind.setComposite(false);
 //                for (Map.Entry<String, String> indQuery : querySet) {
 //                    if (indicatorRequest.getServerID().get(indQuery.getKey()) > 0) {
@@ -2807,9 +2832,15 @@ public class AnalyticsEngineService {
                 // methodMetadata = mapper.readValue(analyticsMethodJSON, AnalyticsMethodMetadata.class);
 
                 AnalyticsMethodReference methodReference = new AnalyticsMethodReference();
-                for (Map.Entry<String, Long> methodId : indicatorRequest.getAnalyticsMethodId().entrySet())
-                    methodReference.getAnalyticsMethods().put(methodId.getKey(), new AnalyticsMethodEntry(methodId.getValue(), indicatorRequest.getMethodInputParams()));
-                // TODO: Additional parameters need to be implemented. currently every method receive the same set of parameters.
+                for (Map.Entry<String, Long> methodId : indicatorRequest.getAnalyticsMethodId().entrySet()){
+                    String methodParamRaw = indicatorRequest.getMethodInputParams().get(methodId.getKey());
+                    HashMap<String,String> methodParam;
+                    if(methodParamRaw == null || methodParamRaw.isEmpty())
+                        methodParam = new HashMap<>();
+                    else
+                        methodParam = mapper.readValue(methodParamRaw, hashMapType);
+                    methodReference.getAnalyticsMethods().put(methodId.getKey(), new AnalyticsMethodEntry(methodId.getValue(), methodParam));
+                }
 
                 OpenLAPPortConfigReference queryToMethodReference = new OpenLAPPortConfigReference();
                 for (Map.Entry<String, OpenLAPPortConfig> methodConfig : indicatorRequest.getQueryToMethodConfig().entrySet()) {
@@ -3009,7 +3040,7 @@ public class AnalyticsEngineService {
         return questionSaveResponse;
     }
 
-    public String testing(String categoryID, HttpServletRequest request){
+    public String testing(HttpServletRequest request){
         String baseUrl = String.format("%s://%s:%d", request.getScheme(), request.getServerName(), request.getServerPort());
         String returnValue = "";
 
@@ -3038,14 +3069,9 @@ public class AnalyticsEngineService {
 //
 //            OpenLAPDataSet dataSet = transformHQLToOpenLAPDatSet(dataList, query);
 
-            List<OpenLAPDataSetMergeMapping> mergeMappings = new ArrayList<>();
-            OpenLAPDataSetMergeMapping first = new OpenLAPDataSetMergeMapping();
-            first.setIndRefKey1("1");
-            first.setIndRefField1("item_count");
-            first.setIndRefKey2("2");
-            first.setIndRefField2("average_marks");
-
-            mergeMappings.add(first);
+            HashMap<String, String> mergeMappings = new HashMap<>();
+            mergeMappings.put("return_count","2");
+            mergeMappings.put("another_attr","vale");
             try {
                 returnValue =  mapper.writeValueAsString(mergeMappings);
             } catch (Exception exc) {}
@@ -3159,8 +3185,6 @@ public class AnalyticsEngineService {
                 " <br>Please wait the indicator is being processed</td></tr></table> " +
                 visFrameworkScript +
                 "<script type=\"text/javascript\"> " +
-//                " google.setOnLoadCallback(draw_"+triad.getId()+"); " +
-//                "   function draw_"+triad.getId()+"() { " +
                 "$(document).ready(function() {var xmlhttp_"+triad.getId()+"; " +
                 "  if (window.XMLHttpRequest) { xmlhttp_"+triad.getId()+" = new XMLHttpRequest(); } else { xmlhttp_"+triad.getId()+" = new ActiveXObject('Microsoft.XMLHTTP'); } " +
                 "  xmlhttp_"+triad.getId()+".onreadystatechange = function (xmlhttp_"+triad.getId()+") {  " +
@@ -3172,10 +3196,9 @@ public class AnalyticsEngineService {
                 "    $('#td_"+triad.getId()+"').append(decResult_"+triad.getId()+"); " +
                 "   } " +
                 "  }; " +
-                "  xmlhttp_"+triad.getId()+".open('GET', '" + indicatorExecutionURL + "?tid="+triad.getId()+"&width='+$('#main_"+triad.getId()+"').parent().width()+'&height='+$('#main_"+triad.getId()+"').parent().height(), true);  " +
+                "  xmlhttp_"+triad.getId()+".open('GET', '" + indicatorExecutionURL + "?tid="+triad.getId()+"&rid=xxxridxxx&width='+$('#main_"+triad.getId()+"').parent().width()+'&height='+$('#main_"+triad.getId()+"').parent().height(), true);  " +
                 "  xmlhttp_"+triad.getId()+".timeout = 300000; " +
                 "  xmlhttp_"+triad.getId()+".send(); });" +
-//                "   } " +
                 "</script> " +
                 "<table id='main_"+triad.getId()+"'><tbody><tr> " +
                 " <td id='td_"+triad.getId()+"' style='text-align:-webkit-center;text-align:-moz-center;text-align:-o-center;text-align:-ms-center;'></td></tr></tbody></table> ";
@@ -3460,22 +3483,45 @@ public class AnalyticsEngineService {
 
     //region TriadCache repository methods
 
-    public TriadCache getCacheByTriadId(long triadId) throws ItemNotFoundException {
+    public TriadCache getCacheByTriadId(long triadId, String userHash) throws ItemNotFoundException {
         List<TriadCache> result = triadCacheRepository.findByTriadId(triadId);
 
         if (result == null) {
             return null;
         } else {
-            if(result.size()>0)
-                return result.get(0);
-            else
+            if(result.size()==1){
+                if(result.get(0).getUserHash()==null || result.get(0).getUserHash().equals("") || result.get(0).getUserHash().equals(userHash))
+                    return result.get(0);
+                else
+                    return null;
+            }
+            else{
+                for(TriadCache triadCache:result)
+                    if(triadCache.getUserHash().equals(userHash))
+                        return triadCache;
+
                 return null;
+            }
         }
     }
 
     public TriadCache saveTriadCache(long triadId, String code) {
 
         TriadCache triadCache = new TriadCache(triadId, code);
+        try {
+            return triadCacheRepository.save(triadCache);
+        } catch (DataIntegrityViolationException sqlException) {
+            sqlException.printStackTrace();
+            throw new BadRequestException("Cache already exists.", "1");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BadRequestException(e.getMessage(),  "1");
+        }
+    }
+
+    public TriadCache saveTriadCache(long triadId, String userHash, String code) {
+
+        TriadCache triadCache = new TriadCache(triadId, userHash, code);
         try {
             return triadCacheRepository.save(triadCache);
         } catch (DataIntegrityViolationException sqlException) {
@@ -3561,31 +3607,31 @@ public class AnalyticsEngineService {
 
                         switch (className) {
                             case "java.lang.Integer":
-                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.INTEGER, true));
+                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.Numeric, true));
                                 break;
                             case "java.lang.Boolean":
-                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.BOOLEAN, true));
+                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.TrueFalse, true));
                                 break;
                             case "java.lang.Byte":
-                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.BYTE, true));
+                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.Numeric, true));
                                 break;
                             case "java.lang.Character":
-                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.CHAR, true));
+                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.Text, true));
                                 break;
                             case "java.lang.Float":
-                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.FLOAT, true));
+                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.Numeric, true));
                                 break;
                             case "java.sql.Timestamp":
-                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.LOCAL_DATE_TIME, true));
+                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.Numeric, true));
                                 break;
                             case "java.lang.Long":
-                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.LONG, true));
+                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.Numeric, true));
                                 break;
                             case "java.lang.Short":
-                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.SHORT, true));
+                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.Numeric, true));
                                 break;
                             case "java.lang.String":
-                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.STRING, true));
+                                ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[i], OpenLAPColumnDataType.Text, true));
                                 break;
                             default:
                                 break;
@@ -3603,10 +3649,10 @@ public class AnalyticsEngineService {
                 }
             } else if (dataFirst instanceof OpenLAPCategory) {
                 try {
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("cId", OpenLAPColumnDataType.INTEGER, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("type", OpenLAPColumnDataType.STRING, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("major", OpenLAPColumnDataType.STRING, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("minor", OpenLAPColumnDataType.STRING, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("cId", OpenLAPColumnDataType.Numeric, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("type", OpenLAPColumnDataType.Text, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("major", OpenLAPColumnDataType.Text, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("minor", OpenLAPColumnDataType.Text, true));
                 } catch (OpenLAPDataColumnException e) {
                     e.printStackTrace();
                 }
@@ -3621,10 +3667,10 @@ public class AnalyticsEngineService {
                 }
             } else if (dataFirst instanceof OpenLAPEntity) {
                 try {
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("eId", OpenLAPColumnDataType.INTEGER, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("eventFk", OpenLAPColumnDataType.INTEGER, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("entityKey", OpenLAPColumnDataType.STRING, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("entityValue", OpenLAPColumnDataType.STRING, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("eId", OpenLAPColumnDataType.Numeric, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("eventFk", OpenLAPColumnDataType.Numeric, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("entityKey", OpenLAPColumnDataType.Text, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("entityValue", OpenLAPColumnDataType.Text, true));
                 } catch (OpenLAPDataColumnException e) {
                     e.printStackTrace();
                 }
@@ -3639,14 +3685,14 @@ public class AnalyticsEngineService {
                 }
             } else if (dataFirst instanceof OpenLAPEvent) {
                 try {
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("eventId", OpenLAPColumnDataType.INTEGER, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("uId", OpenLAPColumnDataType.INTEGER, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("cId", OpenLAPColumnDataType.INTEGER, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("timestamp", OpenLAPColumnDataType.INTEGER, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("session", OpenLAPColumnDataType.STRING, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("action", OpenLAPColumnDataType.STRING, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("platform", OpenLAPColumnDataType.STRING, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("source", OpenLAPColumnDataType.STRING, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("eventId", OpenLAPColumnDataType.Numeric, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("uId", OpenLAPColumnDataType.Numeric, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("cId", OpenLAPColumnDataType.Numeric, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("timestamp", OpenLAPColumnDataType.Numeric, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("session", OpenLAPColumnDataType.Text, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("action", OpenLAPColumnDataType.Text, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("platform", OpenLAPColumnDataType.Text, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("source", OpenLAPColumnDataType.Text, true));
                 } catch (OpenLAPDataColumnException e) {
                     e.printStackTrace();
                 }
@@ -3665,8 +3711,8 @@ public class AnalyticsEngineService {
                 }
             } else if (dataFirst instanceof OpenLAPUsers) {
                 try {
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("uId", OpenLAPColumnDataType.INTEGER, true));
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("name", OpenLAPColumnDataType.STRING, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("uId", OpenLAPColumnDataType.Numeric, true));
+                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType("name", OpenLAPColumnDataType.Text, true));
                 } catch (OpenLAPDataColumnException e) {
                     e.printStackTrace();
                 }
@@ -3684,31 +3730,31 @@ public class AnalyticsEngineService {
                 try {
                     switch (className) {
                         case "java.lang.Integer":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.INTEGER, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.Boolean":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.BOOLEAN, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.TrueFalse, true));
                             break;
                         case "java.lang.Byte":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.BYTE, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.Character":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.CHAR, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.Text, true));
                             break;
                         case "java.lang.Float":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.FLOAT, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.sql.Timestamp":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.LOCAL_DATE_TIME, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.Long":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.LONG, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.Short":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.SHORT, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.String":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.STRING, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(fieldsName[0], OpenLAPColumnDataType.Text, true));
                             break;
                         default:
                             break;
@@ -3766,144 +3812,185 @@ public class AnalyticsEngineService {
     }
 
     public OpenLAPDataSet transformIndicatorQueryToOpenLAPDatSet(List<?> dataList, OpenLAPPortConfig methodMapping) {
-        OpenLAPDataSet ds;
+        OpenLAPDataSet dataset = new OpenLAPDataSet();
+
+        boolean containEntity = false;
+
+        // Creating columns based on the query to method configuration
+        try {
+            for (OpenLAPColumnConfigData column : methodMapping.getOutputColumnConfigurationData()) {
+                if(!dataset.getColumns().containsKey(column.getId()))
+                    dataset.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(column.getId(), column.getType(), false, column.getTitle(), column.getDescription()));
+
+                //checking if any mapping have false which means a column needs data from Entity table
+                if(!column.isRequired())
+                    containEntity = true;
+            }
+        } catch (OpenLAPDataColumnException e) {
+            e.printStackTrace();
+        }
 
         if (dataList.size() > 0) {
 
-            ds = new OpenLAPDataSet();
-
-            boolean containEntity = false;
-
-            // Creating columns based on the query to method configuration
-            try {
-                for (OpenLAPColumnConfigData column : methodMapping.getOutputColumnConfigurationData()) {
-                    ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(column.getId(), column.getType(), false, column.getTitle(), column.getDescription()));
-
-                    //checking if any mapping have false which means a column needs data from Entity table
-                    if(!column.isRequired())
-                        containEntity = true;
-                }
-            } catch (OpenLAPDataColumnException e) {
-                e.printStackTrace();
-            }
+//            dataset = new OpenLAPDataSet();
+//
+//            boolean containEntity = false;
+//
+//            // Creating columns based on the query to method configuration
+//            try {
+//                for (OpenLAPColumnConfigData column : methodMapping.getOutputColumnConfigurationData()) {
+//                    dataset.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(column.getId(), column.getType(), false, column.getTitle(), column.getDescription()));
+//
+//                    //checking if any mapping have false which means a column needs data from Entity table
+//                    if(!column.isRequired())
+//                        containEntity = true;
+//                }
+//            } catch (OpenLAPDataColumnException e) {
+//                e.printStackTrace();
+//            }
 
             OpenLAPEvent preEvent = null;
             OpenLAPEvent curEvent = null;
 
-            Map<String, String> preEntities = new HashMap<String, String>();
+            Map<String, String> preEntities = new HashMap<>();
             OpenLAPEntity curEntity = null;
 
-            for (Object row : dataList) {
-                if(containEntity) {
-                    Object[] rowArray = (Object[]) row;
+            //for (Object row : dataList) {
+            for (int counter=0 ; counter<=dataList.size() ; counter++) {
+                //running 1 more than the total item because the final item is still saved as prev item in case data is coming from Entity table
 
-                    curEvent = (OpenLAPEvent) rowArray[0];
-                    curEntity = (OpenLAPEntity) rowArray[1];
+                if(counter<dataList.size()) {
+                    Object row = dataList.get(counter);
 
-                    if(preEvent==null || preEvent.getEventId() == curEvent.getEventId()){
-                        preEvent = curEvent;
-                        preEntities.put(curEntity.getEntityKey(),curEntity.getValue());
-                        continue;
+                    if (containEntity) {
+                        Object[] rowArray = (Object[]) row;
+
+                        curEvent = (OpenLAPEvent) rowArray[0];
+                        curEntity = (OpenLAPEntity) rowArray[1];
+
+                        if (preEvent == null || preEvent.getEventId() == curEvent.getEventId()) {
+                            preEvent = curEvent;
+                            preEntities.put(curEntity.getEntityKey(), curEntity.getValue());
+                            continue;
+                        }
+                    } else {
+                        preEvent = (OpenLAPEvent) row;
                     }
                 }
-                else{
-                    preEvent = (OpenLAPEvent) row;
-                }
 
-                try {
-                    for (OpenLAPColumnConfigData column : methodMapping.getOutputColumnConfigurationData()) {
-                        if (column.isRequired()) {
-                            //if the isRequired is true than it means that column is related to Event class
-                            switch (column.getId()) {
-                                case "eventId":
-                                    ds.getColumns().get("eventId").getData().add(preEvent.getEventId());
-                                    break;
-                                case "timestamp":
-                                    ds.getColumns().get("timestamp").getData().add(preEvent.getTimestamp());
-                                    break;
-                                case "session":
-                                    ds.getColumns().get("session").getData().add(preEvent.getSession());
-                                    break;
-                                case "action":
-                                    ds.getColumns().get("action").getData().add(preEvent.getAction());
-                                    break;
-                                case "platform":
-                                    ds.getColumns().get("platform").getData().add(preEvent.getPlatform());
-                                    break;
-                                case "source":
-                                    ds.getColumns().get("source").getData().add(preEvent.getSource());
-                                    break;
-                                case "category":
-                                    ds.getColumns().get("category").getData().add(preEvent.getCategoryByCId().getMinor());
-                                    break;
-                                case "user":
-                                    ds.getColumns().get("user").getData().add(preEvent.getUsersByUId().getName());
-                                    break;
-                                default:
-                                    break;
-                            }
-                        } else {
-                            //if the isRequired is false than it means that column is related to Entity class
-                            //ds.getColumns().get(column.getId()).getData().add(preEntities.get(column.getId()));
+                if(counter<dataList.size() || containEntity) {
+                    try {
+                        for (OpenLAPColumnConfigData column : methodMapping.getOutputColumnConfigurationData()) {
+                            if (column.isRequired()) {
+                                //if the isRequired is true than it means that column is related to Event class
+                                switch (column.getId()) {
+                                    case "eventId":
+                                        dataset.getColumns().get("eventId").getData().add(preEvent.getEventId());
+                                        break;
+                                    case "timestamp":
+                                        dataset.getColumns().get("timestamp").getData().add(preEvent.getTimestamp());
+                                        break;
+                                    case "session":
+                                        dataset.getColumns().get("session").getData().add(preEvent.getSession());
+                                        break;
+                                    case "action":
+                                        dataset.getColumns().get("action").getData().add(preEvent.getAction());
+                                        break;
+                                    case "platform":
+                                        dataset.getColumns().get("platform").getData().add(preEvent.getPlatform());
+                                        break;
+                                    case "source":
+                                        dataset.getColumns().get("source").getData().add(preEvent.getSource());
+                                        break;
+                                    case "category":
+                                        dataset.getColumns().get("category").getData().add(preEvent.getCategoryByCId().getMinor());
+                                        break;
+                                    case "user":
+                                        dataset.getColumns().get("user").getData().add(preEvent.getUsersByUId().getName());
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            } else {
+                                //if the isRequired is false than it means that column is related to Entity class
+                                //ds.getColumns().get(column.getId()).getData().add(preEntities.get(column.getId()));
 
-                            switch (column.getType()) {
-                                case BOOLEAN:
-                                    try{ds.getColumns().get(column.getId()).getData().add(Boolean.parseBoolean(preEntities.get(column.getId()).toLowerCase()));}
-                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(false);}
-                                    break;
-                                case BYTE:
-                                    try{ds.getColumns().get(column.getId()).getData().add(Byte.parseByte(preEntities.get(column.getId())));}
-                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(-128);}
-                                    break;
-                                case LOCAL_DATE_TIME:
-                                    try{ds.getColumns().get(column.getId()).getData().add(LocalDateTime.parse(preEntities.get(column.getId())));}
-                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(LocalDateTime.MIN);}
-                                    break;
-                                case FLOAT:
-                                    try{ds.getColumns().get(column.getId()).getData().add(Float.parseFloat(preEntities.get(column.getId())));}
-                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(-3.40282347E+38F);}
-                                    break;
-                                case LONG:
-                                    try{ds.getColumns().get(column.getId()).getData().add(Long.parseLong(preEntities.get(column.getId())));}
-                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(-2147483648);}
-                                    break;
-                                case INTEGER:
-                                    try{ds.getColumns().get(column.getId()).getData().add(Integer.parseInt(preEntities.get(column.getId())));}
-                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(-2147483648);}
-                                    break;
-                                case SHORT:
-                                    try{ds.getColumns().get(column.getId()).getData().add(Short.parseShort(preEntities.get(column.getId())));}
-                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(false);}
-                                    break;
-                                case CHAR:
-                                    try{ds.getColumns().get(column.getId()).getData().add(preEntities.get(column.getId()).charAt(0));}
-                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add("");}
-                                    break;
-                                case STRING:
-                                    ds.getColumns().get(column.getId()).getData().add(preEntities.get(column.getId()));
-                                    break;
-                                default:
-                                    ds.getColumns().get(column.getId()).getData().add(preEntities.get(column.getId()));
-                                    break;
+                                switch (column.getType()) {
+//                                case BOOLEAN:
+//                                    try{ds.getColumns().get(column.getId()).getData().add(Boolean.parseBoolean(preEntities.get(column.getId()).toLowerCase()));}
+//                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(false);}
+//                                    break;
+//                                case BYTE:
+//                                    try{ds.getColumns().get(column.getId()).getData().add(Byte.parseByte(preEntities.get(column.getId())));}
+//                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(-128);}
+//                                    break;
+//                                case LOCAL_DATE_TIME:
+//                                    try{ds.getColumns().get(column.getId()).getData().add(LocalDateTime.parse(preEntities.get(column.getId())));}
+//                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(LocalDateTime.MIN);}
+//                                    break;
+//                                case FLOAT:
+//                                    try{ds.getColumns().get(column.getId()).getData().add(Float.parseFloat(preEntities.get(column.getId())));}
+//                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(-3.40282347E+38F);}
+//                                    break;
+//                                case LONG:
+//                                    try{ds.getColumns().get(column.getId()).getData().add(Long.parseLong(preEntities.get(column.getId())));}
+//                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(-2147483648);}
+//                                    break;
+//                                case INTEGER:
+//                                    try{ds.getColumns().get(column.getId()).getData().add(Integer.parseInt(preEntities.get(column.getId())));}
+//                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(-2147483648);}
+//                                    break;
+//                                case SHORT:
+//                                    try{ds.getColumns().get(column.getId()).getData().add(Short.parseShort(preEntities.get(column.getId())));}
+//                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add(false);}
+//                                    break;
+//                                case CHAR:
+//                                    try{ds.getColumns().get(column.getId()).getData().add(preEntities.get(column.getId()).charAt(0));}
+//                                    catch (Exception exc) {ds.getColumns().get(column.getId()).getData().add("");}
+//                                    break;
+//                                case STRING:
+//                                    ds.getColumns().get(column.getId()).getData().add(preEntities.get(column.getId()));
+//                                    break;
+                                    case TrueFalse:
+                                        try {
+                                            dataset.getColumns().get(column.getId()).getData().add(Boolean.parseBoolean(preEntities.get(column.getId()).toLowerCase()));
+                                        } catch (Exception exc) {
+                                            dataset.getColumns().get(column.getId()).getData().add(false);
+                                        }
+                                        break;
+                                    case Numeric:
+                                        try {
+                                            dataset.getColumns().get(column.getId()).getData().add(Float.parseFloat(preEntities.get(column.getId())));
+                                        } catch (Exception exc) {
+                                            dataset.getColumns().get(column.getId()).getData().add(-3.40282347E+38F);
+                                        }
+                                        break;
+                                    case Text:
+                                        dataset.getColumns().get(column.getId()).getData().add(preEntities.get(column.getId()));
+                                        break;
+                                    default:
+                                        dataset.getColumns().get(column.getId()).getData().add(preEntities.get(column.getId()));
+                                        break;
+                                }
                             }
                         }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
 
-
-                if(containEntity) {
-                    preEvent = curEvent;
-                    preEntities.clear();
-                    preEntities.put(curEntity.getEntityKey(),curEntity.getValue());
+                    if (containEntity) {
+                        preEvent = curEvent;
+                        preEntities.clear();
+                        preEntities.put(curEntity.getEntityKey(), curEntity.getValue());
+                    }
                 }
             }
-        } else {
-            ds = null;
         }
+//        else {
+//            dataset = null;
+//        }
 
-        return ds;
+        return dataset;
     }
 
 
@@ -3994,31 +4081,31 @@ public class AnalyticsEngineService {
 
                     switch (className) {
                         case "java.lang.Integer":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.INTEGER, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.Boolean":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.BOOLEAN, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.TrueFalse, true));
                             break;
                         case "java.lang.Byte":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.BYTE, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.Character":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.CHAR, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.Text, true));
                             break;
                         case "java.lang.Float":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.FLOAT, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.sql.Timestamp":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.LOCAL_DATE_TIME, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.Long":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.LONG, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.Short":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.SHORT, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.Numeric, true));
                             break;
                         case "java.lang.String":
-                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.STRING, true));
+                            ds.addOpenLAPDataColumn(OpenLAPDataColumnFactory.createOpenLAPDataColumnOfType(entry.getKey(), OpenLAPColumnDataType.Text, true));
                             break;
                         default:
                             break;
